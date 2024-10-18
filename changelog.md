@@ -1,5 +1,11 @@
 # Changelog
 
+## tablefill-0.9.16 (2024-10-17)
+
+### Improvements
+
+- Allow `.` modifier to divide by 100.
+
 ## tablefill-0.9.15 (2024-09-14)
 
 ### Bug fixes

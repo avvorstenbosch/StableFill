@@ -144,8 +144,8 @@ __usage__     = """[-h] [-v] [FLAGS] [-i [INPUT [INPUT ...]]] [-o OUTPUT]
 __purpose__   = "Fill tagged tables in LaTeX files with external text tables"
 __author__    = "Mauricio Caceres <caceres@nber.org>"
 __created__   = "Thu Jun 18, 2015"
-__updated__   = "Sat Sep 14, 2024"
-__version__   = __program__ + " version 0.9.15 updated " + __updated__
+__updated__   = "Sat Oct 17, 2024"
+__version__   = __program__ + " version 0.9.16 updated " + __updated__
 
 # Define basestring in a backwards-compatible way
 try:
@@ -838,9 +838,9 @@ class tablefill_internals_engine:
         #   - comments: comment
         self.tags      = '^<Tab:(.+)>[\r\n' + linesep + ']'
         self.matche    = r'[^\\](%|&)'
-        self.match0    = r'\\?#\|?((\d+)(,?|\\?%)?|\\?(#|\*)|{0?(:.*?)?}(date|time)?)\|?\\?#'
+        self.match0    = r'\\?#\|?((\d+)(,?|\\?%|\\?\.)?|\\?(#|\*)|{0?(:.*?)?}(date|time)?)\|?\\?#'
         self.matcha    = r'\\?#\\?(#|\*)\\?#'
-        self.matchb    = r'\\?#\|?(\d+)(,?|\\?%)\|?\\?#'
+        self.matchb    = r'\\?#\|?(\d+)(,?|\\?%|\\?\.)\|?\\?#'
         self.matchc    = '(-?\d+)(\.?\d*)'
         self.matchd    = r'\\?#\|.{1,4}\|\\?#'
         self.matchf    = r'\\?#({0?(:.*?)?})(date|time)?\\?#'
@@ -1473,7 +1473,12 @@ class tablefill_internals_engine:
         precision = int(precision)
         roundas   = 0 if precision == 0 else pow(10, -precision)
         roundas   = Decimal(str(roundas))
-        dentry    = 100 * Decimal(entry) if '%' in comma else Decimal(entry)
+        if '%' in comma:
+            dentry = 100 * Decimal(entry)
+        elif '.' in comma:
+            dentry = Decimal(entry) / 100
+        else:
+            dentry = Decimal(entry)
         dentry    = abs(dentry) if re.search(self.matchd, cell) else dentry
         rounded   = str(dentry.quantize(roundas, rounding = ROUND_HALF_UP))
         if ',' in comma:
