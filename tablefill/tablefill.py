@@ -144,8 +144,8 @@ __usage__     = """[-h] [-v] [FLAGS] [-i [INPUT [INPUT ...]]] [-o OUTPUT]
 __purpose__   = "Fill tagged tables in LaTeX files with external text tables"
 __author__    = "Mauricio Caceres <caceres@nber.org>"
 __created__   = "Thu Jun 18, 2015"
-__updated__   = "Sat Oct 17, 2024"
-__version__   = __program__ + " version 0.9.16 updated " + __updated__
+__updated__   = "Tue Jan 20, 2026"
+__version__   = __program__ + " version 0.10.1 updated " + __updated__
 
 # Define basestring in a backwards-compatible way
 try:
@@ -283,7 +283,7 @@ def tablefill(silent         = False,
               filetype       = 'auto',
               pvals          = [0.1, 0.05, 0.01],
               stars          = ['*', '**', '***'],
-              nafilters      = ['.', '', 'NA', 'nan', 'NaN', 'None', 'Inf', 'INF'],
+              nafilters      = ['.', '', 'NA', 'nan', 'NaN', 'NaN+0i', 'None', 'Inf', 'INF'],
               fillc          = False,
               nohead         = False,
               log_file       = None,
@@ -478,7 +478,7 @@ class tablefill_internals_cliparse:
                             dest     = 'nafilters',
                             type     = str,
                             nargs    = '*',
-                            default  = ['.', '', 'NA', 'nan', 'NaN', 'None', 'Inf', 'INF'],
+                            default  = ['.', '', 'NA', 'nan', 'NaN', 'NaN+0i', 'None', 'Inf', 'INF'],
                             help     = "Filters for missing values"
                                        "(enclose each in quotes)",
                             required = False)
@@ -694,7 +694,7 @@ class tablefill_internals_engine:
                  silent         = False,
                  pvals          = [0.1, 0.05, 0.01],
                  stars          = ['*', '**', '***'],
-                 nafilters      = ['.', '', 'NA', 'nan', 'NaN', 'None', 'Inf', 'INF'],
+                 nafilters      = ['.', '', 'NA', 'nan', 'NaN', 'NaN+0i', 'None', 'Inf', 'INF'],
                  fillc          = False,
                  nohead         = False,
                  legacy_parsing = False,
@@ -835,16 +835,18 @@ class tablefill_internals_engine:
         #   - matchc:   (-?)integer(.decimal)?
         #   - matchd:   absolute value
         #   - matchf:   python formatting
+        #   - matchg:   imaginary numbers
         #   - comments: comment
         self.tags      = '^<Tab:(.+)>[\r\n' + linesep + ']'
         self.matche    = r'[^\\](%|&)'
         self.match0    = r'\\?#\|?((\d+)(,?|\\?%|\\?\.)?|\\?(#|\*)|{0?(:.*?)?}(date|time)?)\|?\\?#'
         self.matcha    = r'\\?#\\?(#|\*)\\?#'
         self.matchb    = r'\\?#\|?(\d+)(,?|\\?%|\\?\.)\|?\\?#'
-        self.matchc    = '(-?\d+)(\.?\d*)'
+        self.matchc    = r'(-?\d+)(\.?\d*)'
         self.matchd    = r'\\?#\|.{1,4}\|\\?#'
         self.matchf    = r'\\?#({0?(:.*?)?})(date|time)?\\?#'
-        self.comments  = '^\s*%'
+        self.matchg    = r'([+-]?[\d.]+)([+-][\d.]+)i$'
+        self.comments  = r'^\s*%'
 
         # TODO: Allow custom regexes!
 
@@ -916,9 +918,9 @@ class tablefill_internals_engine:
             if self.legacy_parsing:
                 self.parse_xml_file_legacy(ctables,
                                            self.template,
-                                           prefix = '^%\s*')
+                                           prefix = r'^%\s*')
             else:
-                self.parse_xml_file(ctables, self.template, prefix = '^%\s*')
+                self.parse_xml_file(ctables, self.template, prefix = r'^%\s*')
         else:
             if self.legacy_parsing:
                 self.parse_xml_file_legacy(ctables,
@@ -929,11 +931,11 @@ class tablefill_internals_engine:
 
         # Read in actual and custom tables
         # self.tables = {k: self.filter_missing(v) for k, v in tables.items()}
-        self.tables = dict((k, self.filter_missing(list(flatten(v))))
+        self.tables = dict((k, self.filter_missing([x.strip() for x in flatten(v)]))
                            for (k, v) in ctables.items())
 
     def parse_xml_file(self, ctables, xml_input, prefix = ''):
-        """Parse custom tabs in comments/XML files
+        r"""Parse custom tabs in comments/XML files
 
         Note that the parsing here is VERY crude (you will note it uses
         a combination of XML parsing and regexes). This is more or less
@@ -960,7 +962,7 @@ class tablefill_internals_engine:
         xml_toparse  = concat_files(xml_list)
 
         xml_regex  = prefix
-        xml_regex += "<tablefill-python\s+tag\s*=\s*['\"](.+)\s*['\"]"
+        xml_regex += r"<tablefill-python\s+tag\s*=\s*['\"](.+)\s*['\"]"
 
         # Figure out where the custom XML tags are
         i = 0
@@ -971,7 +973,7 @@ class tablefill_internals_engine:
                 j = i
                 search = True
                 while search and j <= len(xml_toparse):
-                    if re.search('</\s*tablefill-python\s*>', xml_toparse[j]):
+                    if re.search(r'</\s*tablefill-python\s*>', xml_toparse[j]):
                         search = False
                     j += 1
 
@@ -986,7 +988,7 @@ class tablefill_internals_engine:
             chtml    = []
             cobj     = itemgetter(*c)(xml_toparse)
             for obj in cobj:
-                chtml += [re.sub('^%\s*', '', obj)]
+                chtml += [re.sub(r'^%\s*', '', obj)]
 
             try:
                 cxml = xml.fromstringlist(chtml)
@@ -1046,7 +1048,7 @@ class tablefill_internals_engine:
 
             addok = False
             try:
-                clean_text = re.subn('\s|' + linesep, '', cxml.text)[0]
+                clean_text = re.subn(r'\s|' + linesep, '', cxml.text)[0]
                 print_verbose(self.verbose, "\t\t%s" % clean_text)
                 ceval = eval(clean_text, usedict)
 
@@ -1084,7 +1086,7 @@ class tablefill_internals_engine:
                 ctables[tag] = list(nested_convert(toadd, str))
 
     def parse_xml_file_legacy(self, ctables, xml_input, prefix = ''):
-        """Parse custom tabs in comments/XML files
+        r"""Parse custom tabs in comments/XML files
 
         Note that the parsing here is VERY crude (you will note it uses
         a combination of XML parsing and regexes). This is more or less
@@ -1111,7 +1113,7 @@ class tablefill_internals_engine:
         xml_toparse  = concat_files(xml_list)
 
         xml_regex  = prefix
-        xml_regex += "<tablefill-(custom|python)\s+tag\s*=\s*['\"](.+)\s*['\"]"
+        xml_regex += r"<tablefill-(custom|python)\s+tag\s*=\s*['\"](.+)\s*['\"]"
 
         # Figure out where the custom XML tags are
         i = 0
@@ -1125,7 +1127,7 @@ class tablefill_internals_engine:
                 todo  += [w]
                 search = True
                 while search and j <= len(xml_toparse):
-                    if re.search('</\s*tablefill-%s\s*>' % w, xml_toparse[j]):
+                    if re.search(r'</\s*tablefill-%s\s*>' % w, xml_toparse[j]):
                         search = False
                     j += 1
 
@@ -1141,7 +1143,7 @@ class tablefill_internals_engine:
             chtml    = []
             cobj     = itemgetter(*c)(xml_toparse)
             for obj in cobj:
-                chtml += [re.sub('^%\s*', '', obj)]
+                chtml += [re.sub(r'^%\s*', '', obj)]
 
             try:
                 cxml = xml.fromstringlist(chtml)
@@ -1473,6 +1475,21 @@ class tablefill_internals_engine:
         precision = int(precision)
         roundas   = 0 if precision == 0 else pow(10, -precision)
         roundas   = Decimal(str(roundas))
+        complex_match = re.match(self.matchg, entry.replace(" ", ""))
+        if complex_match:
+            real_part, i_part = complex_match.groups()
+            real_rounded = self.round_and_format_helper(real_part, cell, roundas, comma)
+            i_rounded    = self.round_and_format_helper(i_part,    cell, roundas, comma)
+            i_sign       = "+" if not i_rounded.startswith('-') else ""
+            rounded      = real_rounded + i_sign + i_rounded
+        else:
+            rounded = self.round_and_format_helper(entry, cell, roundas, comma)
+        return re.sub(self.matchb, rounded, cell, count = 1)
+
+    def round_and_format_helper(self, entry, cell, roundas, comma):
+        """
+        Internal helper for round and format
+        """
         if '%' in comma:
             dentry = 100 * Decimal(entry)
         elif '.' in comma:
@@ -1485,7 +1502,7 @@ class tablefill_internals_engine:
             integer_part, decimal_part = re.findall(self.matchc, rounded)[0]
             neg      = '-' if re.match('^-0', integer_part) else ''
             rounded  = neg + compat_format(int(integer_part)) + decimal_part
-        return re.sub(self.matchb, rounded, cell, count = 1)
+        return rounded
 
     def parse_pval_to_stars(self, cell, entry):
         """

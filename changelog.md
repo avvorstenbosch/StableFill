@@ -1,5 +1,11 @@
 # Changelog
 
+## tablefill-0.10.1 (2026-01-20)
+
+### Improvements
+
+- Allow imaginary matrices (tested from Matlab with `writematrix`)
+
 ## tablefill-0.9.16 (2024-10-17)
 
 ### Improvements
