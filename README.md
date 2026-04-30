@@ -5,6 +5,15 @@ StableFill updates LaTeX, LyX, and Markdown documents from plain text result
 files. It fills labeled tables and named inline values, so papers can be
 regenerated after analysis changes without manually editing reported numbers.
 
+Status
+------
+
+This is a fork of the original `tablefill` project. The package has recently
+been modernized and partially refactored with help from OpenAI Codex, but it
+has not been thoroughly verified in production workflows. Use with caution,
+review filled documents carefully, and keep template/input files under version
+control.
+
 Quickstart
 ----------
 
@@ -181,10 +190,17 @@ Documentation
 Background
 ----------
 
-The original idea comes from GSLab's `tablefill`. This version keeps the
-original table-oriented workflow while adding modern Python packaging,
-clearer errors, robust whitespace parsing, inline values for prose, and
-economics-focused regression table handling.
+This repository is a fork of Mauricio Caceres Bravo's
+[`mcaceresb/tablefill`](https://github.com/mcaceresb/tablefill), which itself
+builds on the original tablefill idea from
+[GSLab](https://github.com/gslab-econ/gslab_python). Credit for the original
+project, workflow, and much of the existing implementation belongs to those
+authors and contributors.
+
+This fork keeps the original table-oriented workflow while adding modern
+Python packaging, clearer errors, robust whitespace parsing, inline values for
+prose, and economics-focused regression table handling. The modernization work
+was performed with assistance from OpenAI Codex.
 
 License
 -------
