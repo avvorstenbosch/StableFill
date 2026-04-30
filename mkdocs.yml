@@ -3,10 +3,10 @@ site_name:        'tablefill'
 site_description: 'Automated system for LaTeX and LyX table updating'
 
 # Repository
-repo_name: 'mcaceresb/tablefill'
-repo_url: 'https://github.com/mcaceresb/tablefill'
+repo_name: 'avvorstenbosch/tablefill'
+repo_url: 'https://github.com/avvorstenbosch/tablefill'
 edit_uri: 'blob/master/docs/'
-site_url: 'https://mcaceresb.github.io/tablefill/'
+site_url: 'https://avvorstenbosch.github.io/tablefill/'
 
 nav:
     - Home: index.md
@@ -18,6 +18,8 @@ nav:
         Common Issues:    usage/04common-issues.md
         Advanced Options: usage/05advanced-options.md
         XML Engine:       usage/06xml-engine.md
+        Inline Values:    usage/07-inline-values.md
+        LaTeX Economics:  usage/08-latex-economics.md
 
 theme:
     name: 'material'

@@ -1,5 +1,24 @@
 # Changelog
 
+## tablefill-0.11.0 (2026-04-30)
+
+### Features
+
+- Add inline named value placeholders such as `{{sample_size|,.0f}}`.
+- Add `<Val:...>`, `<Value:...>`, `<Scalar:...>`, and `<Stat:...>` input blocks.
+- Add `{{val:name}}` as the recommended inline placeholder style for prose.
+- Accept whitespace-delimited input rows for regression tables with coefficient and standard-error rows.
+- Treat adjacent `estimate (standard error)` pairs as one logical table cell.
+- Document and test ragged placeholder layouts that fill in top-to-bottom, left-to-right source order.
+- Add `stablefill` and `python -m tablefill` command entry points.
+
+### Improvements
+
+- Move input parsing, inline replacement, and domain exceptions into focused modules.
+- Avoid eager NumPy matrix coercion when no custom XML tables are present, so ragged table rows remain safe in normal fills.
+- Improve numeric placeholder errors with template line, table tag, entry index, placeholder, and original exception details.
+- Make `numpy` optional for normal installations and update package metadata for Python 3.8+.
+
 ## tablefill-0.10.1 (2026-01-20)
 
 ### Improvements

@@ -12,12 +12,9 @@ with open('changelog.md') as history_file:
     history = history_file.read()
 
 requirements = [
-    'numpy',
 ]
 
 setup_requirements = [
-    'setuptools >= 38.6.0',
-    'twine >= 1.11.0'
 ]
 
 test_requirements = []
@@ -30,33 +27,34 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
     ],
     description  = "Automatically update LaTeX, Markdown, and LyX tables.",
     entry_points = {
-        'console_scripts': ['tablefill = tablefill.tablefill:main']
+        'console_scripts': [
+            'tablefill = tablefill.tablefill:main',
+            'stablefill = tablefill.tablefill:main',
+        ]
     },
+    extras_require                = {'numpy': ['numpy']},
     install_requires              = requirements,
     license                       = "MIT license",
     long_description              = readme + '\n\n' + history,
     long_description_content_type = 'text/markdown',
     keywords                      = 'tablefill',
     name                          = 'tablefill',
-    packages                      = find_packages(include = ['tablefill']),
+    packages                      = find_packages(include = ['tablefill', 'tablefill.*']),
+    python_requires               = '>=3.8',
     setup_requires                = setup_requirements,
     test_suite                    = 'tests',
     tests_require                 = test_requirements,
-    url                           = 'https://github.com/mcaceresb/tablefill',
-    version                       = '0.10.1',
+    url                           = 'https://github.com/avvorstenbosch/tablefill',
+    version                       = '0.11.0',
     zip_safe                      = False,
 )

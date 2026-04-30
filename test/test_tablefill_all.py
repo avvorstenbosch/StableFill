@@ -7,39 +7,54 @@ from subprocess import call
 import unittest
 import os
 import sys
-sys.path.append('../tablefill/')
+import tempfile
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(TEST_DIR)
+sys.path.append(os.path.join(ROOT_DIR, 'tablefill'))
 from nostderrout import nostderrout
 from tablefill import tablefill
-program = '../tablefill/tablefill.py --silent'
+program = '"%s" "%s" --silent' % (
+    sys.executable,
+    os.path.join(ROOT_DIR, 'tablefill', 'tablefill.py'),
+)
+
+
+def here(*parts):
+    return os.path.join(TEST_DIR, *parts)
 
 
 class testTableFillFunction(unittest.TestCase):
 
     def getFileNames(self):
-        self.input_appendix = 'input/tables_appendix.txt input/tables_appendix_two.txt'
-        self.input_nolabel  = 'input/tables_appendix.txt input/tables_nolabel.txt'
-        self.input_fakeone  = 'input/fake_file.txt input/tables_appendix_two.txt'
-        self.input_faketwo  = 'input/tables_appendix.txt input/fake_file.txt'
+        self.output_dir = tempfile.mkdtemp(prefix='tablefill-function-')
+        self.input_appendix = '%s %s' % (here('input', 'tables_appendix.txt'),
+                                         here('input', 'tables_appendix_two.txt'))
+        self.input_nolabel  = '%s %s' % (here('input', 'tables_appendix.txt'),
+                                         here('input', 'tables_nolabel.txt'))
+        self.input_fakeone  = '%s %s' % (here('input', 'fake_file.txt'),
+                                         here('input', 'tables_appendix_two.txt'))
+        self.input_faketwo  = '%s %s' % (here('input', 'tables_appendix.txt'),
+                                         here('input', 'fake_file.txt'))
 
-        self.texoutput      = './input/tablefill_template_filled.tex'
-        self.lyxoutput      = './input/tablefill_template_filled.lyx'
-        self.texoutputnodir = './input/does/not/exist/tablefill_template_filled.tex'
-        self.lyxoutputnodir = './input/does/not/exist/tablefill_template_filled.lyx'
+        self.texoutput      = os.path.join(self.output_dir, 'tablefill_template_filled.tex')
+        self.lyxoutput      = os.path.join(self.output_dir, 'tablefill_template_filled.lyx')
+        self.texoutputnodir = os.path.join(self.output_dir, 'does', 'not', 'exist', 'tablefill_template_filled.tex')
+        self.lyxoutputnodir = os.path.join(self.output_dir, 'does', 'not', 'exist', 'tablefill_template_filled.lyx')
 
-        self.pytemplate        = 'input/tablefill_template.py'
-        self.blanktemplate     = 'input/tablefill_template'
-        self.textemplate       = 'input/tablefill_template.tex'
+        self.pytemplate        = here('input', 'tablefill_template.py')
+        self.blanktemplate     = here('input', 'tablefill_template')
+        self.textemplate       = here('input', 'tablefill_template.tex')
 
-        self.textemplatebreaks = 'input/tablefill_template_breaks.tex'
-        self.textemplatetext   = '../test/input/textfill_template.tex'
-        self.textemplatenolab  = 'input/tablefill_template_nolab.tex'
-        self.textemplatewrong  = 'input/tablefill_template_wrong.tex'
+        self.textemplatebreaks = here('input', 'tablefill_template_breaks.tex')
+        self.textemplatetext   = here('input', 'textfill_template.tex')
+        self.textemplatenolab  = here('input', 'tablefill_template_nolab.tex')
+        self.textemplatewrong  = here('input', 'tablefill_template_wrong.tex')
 
-        self.lyxtemplate       = 'input/tablefill_template.lyx'
-        self.lyxtemplatebreaks = 'input/tablefill_template_breaks.lyx'
-        self.lyxtemplatetext   = '../test/input/textfill_template.lyx'
-        self.lyxtemplatenolab  = 'input/tablefill_template_nolab.lyx'
-        self.lyxtemplatewrong  = 'input/tablefill_template_wrong.lyx'
+        self.lyxtemplate       = here('input', 'tablefill_template.lyx')
+        self.lyxtemplatebreaks = here('input', 'tablefill_template_breaks.lyx')
+        self.lyxtemplatetext   = here('input', 'textfill_template.lyx')
+        self.lyxtemplatenolab  = here('input', 'tablefill_template_nolab.lyx')
+        self.lyxtemplatewrong  = here('input', 'tablefill_template_wrong.lyx')
 
     def testInput(self):
         self.getFileNames()
@@ -277,30 +292,35 @@ class testTableFillFunction(unittest.TestCase):
 class testTableFillCLI(unittest.TestCase):
 
     def getFileNames(self):
-        self.input_appendix = 'input/tables_appendix.txt input/tables_appendix_two.txt'
-        self.input_nolabel  = 'input/tables_appendix.txt input/tables_nolabel.txt'
-        self.input_fakeone  = 'input/fake_file.txt input/tables_appendix_two.txt'
-        self.input_faketwo  = 'input/tables_appendix.txt input/fake_file.txt'
+        self.output_dir = tempfile.mkdtemp(prefix='tablefill-cli-')
+        self.input_appendix = '%s %s' % (here('input', 'tables_appendix.txt'),
+                                         here('input', 'tables_appendix_two.txt'))
+        self.input_nolabel  = '%s %s' % (here('input', 'tables_appendix.txt'),
+                                         here('input', 'tables_nolabel.txt'))
+        self.input_fakeone  = '%s %s' % (here('input', 'fake_file.txt'),
+                                         here('input', 'tables_appendix_two.txt'))
+        self.input_faketwo  = '%s %s' % (here('input', 'tables_appendix.txt'),
+                                         here('input', 'fake_file.txt'))
 
-        self.texoutput      = './input/tablefill_template_filled.tex'
-        self.lyxoutput      = './input/tablefill_template_filled.lyx'
-        self.texoutputnodir = './input/does/not/exist/tablefill_template_filled.tex'
-        self.lyxoutputnodir = './input/does/not/exist/tablefill_template_filled.lyx'
+        self.texoutput      = os.path.join(self.output_dir, 'tablefill_template_filled.tex')
+        self.lyxoutput      = os.path.join(self.output_dir, 'tablefill_template_filled.lyx')
+        self.texoutputnodir = os.path.join(self.output_dir, 'does', 'not', 'exist', 'tablefill_template_filled.tex')
+        self.lyxoutputnodir = os.path.join(self.output_dir, 'does', 'not', 'exist', 'tablefill_template_filled.lyx')
 
-        self.pytemplate        = 'input/tablefill_template.py'
-        self.blanktemplate     = 'input/tablefill_template'
-        self.textemplate       = 'input/tablefill_template.tex'
+        self.pytemplate        = here('input', 'tablefill_template.py')
+        self.blanktemplate     = here('input', 'tablefill_template')
+        self.textemplate       = here('input', 'tablefill_template.tex')
 
-        self.textemplatebreaks = 'input/tablefill_template_breaks.tex'
-        self.textemplatetext   = '../test/input/textfill_template.tex'
-        self.textemplatenolab  = 'input/tablefill_template_nolab.tex'
-        self.textemplatewrong  = 'input/tablefill_template_wrong.tex'
+        self.textemplatebreaks = here('input', 'tablefill_template_breaks.tex')
+        self.textemplatetext   = here('input', 'textfill_template.tex')
+        self.textemplatenolab  = here('input', 'tablefill_template_nolab.tex')
+        self.textemplatewrong  = here('input', 'tablefill_template_wrong.tex')
 
-        self.lyxtemplate       = 'input/tablefill_template.lyx'
-        self.lyxtemplatebreaks = 'input/tablefill_template_breaks.lyx'
-        self.lyxtemplatetext   = '../test/input/textfill_template.lyx'
-        self.lyxtemplatenolab  = 'input/tablefill_template_nolab.lyx'
-        self.lyxtemplatewrong  = 'input/tablefill_template_wrong.lyx'
+        self.lyxtemplate       = here('input', 'tablefill_template.lyx')
+        self.lyxtemplatebreaks = here('input', 'tablefill_template_breaks.lyx')
+        self.lyxtemplatetext   = here('input', 'textfill_template.lyx')
+        self.lyxtemplatenolab  = here('input', 'tablefill_template_nolab.lyx')
+        self.lyxtemplatewrong  = here('input', 'tablefill_template_wrong.lyx')
 
     def testInput(self):
         self.getFileNames()
@@ -433,26 +453,27 @@ class testTableFillCLI(unittest.TestCase):
         lyxinout_status = tfcall('%s %s --output %s --input %s' % lyxinout)
         texinout = (program, self.textemplatewrong, self.texoutput, self.input_appendix)
         texinout_status = tfcall('%s %s --output %s --input %s' % texinout)
-        self.assertEqual(255, lyxinout_status)
-        self.assertEqual(255, texinout_status)
+        self.assertEqual(1, lyxinout_status)
+        self.assertEqual(1, texinout_status)
 
         lyxinout = (program, self.lyxtemplatenolab, self.lyxoutput, self.input_appendix)
         lyxinout_status = tfcall('%s %s --output %s --input %s' % lyxinout)
         texinout = (program, self.textemplatenolab, self.texoutput, self.input_appendix)
         texinout_status = tfcall('%s %s --output %s --input %s' % texinout)
-        self.assertEqual(255, lyxinout_status)
-        self.assertEqual(255, texinout_status)
+        self.assertEqual(1, lyxinout_status)
+        self.assertEqual(1, texinout_status)
 
         lyxinout = (program, self.lyxtemplate, self.lyxoutput, self.input_nolabel)
         lyxinout_status = tfcall('%s %s --output %s --input %s' % lyxinout)
         texinout = (program, self.textemplate, self.texoutput, self.input_nolabel)
         texinout_status = tfcall('%s %s --output %s --input %s' % texinout)
-        self.assertEqual(255, lyxinout_status)
-        self.assertEqual(255, texinout_status)
+        self.assertEqual(1, lyxinout_status)
+        self.assertEqual(1, texinout_status)
 
 
 def tfcall(*args, **kwargs):
     devnull = open(os.devnull, 'w')
+    kwargs.setdefault('cwd', tempfile.mkdtemp(prefix='tablefill-cli-run-'))
     rc = call(*args, shell = True, stdout = devnull, stderr = devnull, **kwargs)
     devnull.close()
     return rc

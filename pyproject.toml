@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tablefill"
+version = "0.11.0"
+description = "Automatically update LaTeX, Markdown, and LyX tables."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Mauricio Caceres Bravo", email = "mauricio_caceres_bravo@brown.edu"},
+]
+keywords = ["tablefill", "stablefill", "latex", "markdown", "lyx", "tables"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = []
+
+[project.optional-dependencies]
+numpy = ["numpy"]
+test = ["pytest"]
+
+[project.scripts]
+tablefill = "tablefill.tablefill:main"
+stablefill = "tablefill.tablefill:main"
+
+[project.urls]
+Homepage = "https://github.com/avvorstenbosch/tablefill"
+Documentation = "https://avvorstenbosch.github.io/tablefill/"
+
+[tool.setuptools.packages.find]
+include = ["tablefill", "tablefill.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+pythonpath = ["."]

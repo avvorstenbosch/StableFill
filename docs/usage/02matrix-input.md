@@ -7,9 +7,23 @@ Matrix Shapes
 !!! note "Note"
     This section was adapted from the readme for the original tablefill.py
 
-Input files must be tab-delimited rows of numbers or characters,
-preceded by `<label>`. The numbers can be arbitrarily long, can be
-negative, and can also be in scientific notation.
+Input files must contain rows of numbers or characters preceded by
+`<label>`. Rows may be tab-delimited or whitespace-delimited. Tabs are
+still preferred when text cells contain spaces, but whitespace-delimited
+rows are convenient for pasted regression output. The numbers can be
+arbitrarily long, can be negative, and can also be in scientific
+notation.
+
+For economics regression output, a numeric estimate followed immediately by a
+parenthesized numeric standard error is treated as one cell:
+
+```text
+0.125*** (0.031) -0.456 (0.100)
+```
+
+is parsed as two entries, `0.125*** (0.031)` and `-0.456 (0.100)`. A row that
+starts with parenthesized standard errors, such as `(0.031) (0.100)`, is parsed
+as separate entries because those standard errors usually occupy their own row.
 
 ```
 <tab:Test>
@@ -56,4 +70,19 @@ the form: `[numbers].[numbers]e(+/-)[numbers]`
 23.2389e+23
 -2.23e-2
 -0.922e+3
+```
+
+Named Values
+------------
+
+Single statistics can be written as `<Val:...>` or `<Value:...>` blocks and referenced with
+inline placeholders:
+
+```text
+<Val:sample_size>
+5708
+```
+
+```latex
+The sample includes {{val:sample_size|,.0f}} observations.
 ```

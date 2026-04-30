@@ -97,11 +97,8 @@ Notes
 
 Several try-catch pairs and error checks are redundant because right
 now this may also be run from python and not just from the command line
-(done for backwards compatibility's sake).
-
-I also specify python 2 because I use python 3 on my local machine (as
-everyone should) but am forced to use python 2 over ssh (as MIT servers
-available to me come with python 2.6).
+(done for backwards compatibility's sake). Current releases target
+Python 3.8 and newer.
 """
 
 # NOTE: For all my personal projects I import the print function from
@@ -121,6 +118,15 @@ import xml.etree.ElementTree as xml
 import argparse
 import sys
 import re
+
+try:
+    from .errors import PlaceholderError, TableFillError
+    from .inline import replace_inline_placeholders
+    from .parsers import parse_input_files
+except ImportError:
+    from errors import PlaceholderError, TableFillError
+    from inline import replace_inline_placeholders
+    from parsers import parse_input_files
 
 try:
     # Python <= 3.9
@@ -144,14 +150,26 @@ __usage__     = """[-h] [-v] [FLAGS] [-i [INPUT [INPUT ...]]] [-o OUTPUT]
 __purpose__   = "Fill tagged tables in LaTeX files with external text tables"
 __author__    = "Mauricio Caceres <caceres@nber.org>"
 __created__   = "Thu Jun 18, 2015"
-__updated__   = "Tue Jan 20, 2026"
-__version__   = __program__ + " version 0.10.1 updated " + __updated__
+__updated__   = "Thu Apr 30, 2026"
+__version__   = __program__ + " version 0.11.0 updated " + __updated__
 
 # Define basestring in a backwards-compatible way
 try:
-    "" is basestring
+    basestring
 except NameError:
     basestring = str
+
+try:
+    execfile
+except NameError:
+    def execfile(filename, globals = None, locals = None):
+        if globals is None:
+            globals = {}
+        if locals is None:
+            locals = globals
+        with open(filename, "rb") as handle:
+            code = compile(handle.read(), filename, "exec")
+        exec(code, globals, locals)
 
 
 def main():
@@ -192,7 +210,7 @@ def main():
         print_silent(fill.silent, "Output might not be as expected!")
         print_silent(fill.silent, "Rerun program with --verbose option.")
         fill.get_compiled()
-        sysexit(-1)
+        sysexit(1)
     elif exit == 'ERROR':
         fillerror_msg  = 'ERROR while filling table.'
         fillerror_msg += ' Check function call.' + linesep
@@ -604,7 +622,7 @@ class tablefill_internals_cliparse:
         self.nafilters = self.args.nafilters
         self.fillc     = self.args.fill_comments
         self.nohead    = self.args.no_header
-        self.log_file  = self.args.log_file
+        self.log_file  = self.args.log_file[0] if self.args.log_file else None
         self.log_only  = self.args.log_only
         self.legacy_parsing = self.args.legacy_parsing
         self.numpy_syntax   = self.args.numpy_syntax
@@ -714,11 +732,13 @@ class tablefill_internals_engine:
         self.warn_msg  = {'nomatch': '',
                           'notable': '',
                           'nolabel': '',
-                          'toolong': ''}
+                          'toolong': '',
+                          'inline': ''}
         self.warnings  = {'nomatch': [],
                           'notable': [],
                           'nolabel': [],
-                          'toolong': []}
+                          'toolong': [],
+                          'inline': []}
         self.warn_pre  = ""
         self.verbose   = verbose and not silent
         self.silent    = silent
@@ -902,37 +922,28 @@ class tablefill_internals_engine:
         # TODO: I cannot believe the case-insensitivity here (i.e. the lower)
         # TODO: is the cause of all the evil in the world.
 
-        # Read in all the tables
-        parse_data = concat_files(self.input)
-        ctables    = {}
-        for row in parse_data:
-            if re.match(self.tags, row, flags = re.IGNORECASE):
-                tag = re.findall(self.tags, row, flags = re.IGNORECASE)
-                tag = tag[0].lower()
-                ctables[tag] = []
-            else:
-                clean_row_entries = [e.strip() for e in row.split('\t')]
-                ctables[tag] += [clean_row_entries]
+        # Read in all the tables. The parser accepts the historical
+        # tab-delimited format as well as whitespace-delimited rows, which is
+        # common in regression output with coefficients and standard errors.
+        parsed_inputs = parse_input_files(self.input, self.nafilters)
+        ctables       = parsed_inputs.tables
+        scalar_values = parsed_inputs.values
 
-        if self.xml_tables is None and not self.ignore_xml:
+        if not self.ignore_xml:
+            xml_input  = self.template if self.xml_tables is None else self.xml_tables
+            xml_prefix = r'^%\s*' if self.xml_tables is None else ''
             if self.legacy_parsing:
-                self.parse_xml_file_legacy(ctables,
-                                           self.template,
-                                           prefix = r'^%\s*')
+                self.parse_xml_file_legacy(ctables, xml_input, prefix = xml_prefix)
             else:
-                self.parse_xml_file(ctables, self.template, prefix = r'^%\s*')
-        else:
-            if self.legacy_parsing:
-                self.parse_xml_file_legacy(ctables,
-                                           self.xml_tables,
-                                           prefix = '')
-            else:
-                self.parse_xml_file(ctables, self.xml_tables, prefix = '')
+                self.parse_xml_file(ctables, xml_input, prefix = xml_prefix)
 
         # Read in actual and custom tables
         # self.tables = {k: self.filter_missing(v) for k, v in tables.items()}
         self.tables = dict((k, self.filter_missing([x.strip() for x in flatten(v)]))
                            for (k, v) in ctables.items())
+        self.inline_values = dict((k, v[0]) for (k, v) in self.tables.items()
+                                  if len(v) > 0)
+        self.inline_values.update(scalar_values)
 
     def parse_xml_file(self, ctables, xml_input, prefix = ''):
         r"""Parse custom tabs in comments/XML files
@@ -972,7 +983,7 @@ class tablefill_internals_engine:
             if s:
                 j = i
                 search = True
-                while search and j <= len(xml_toparse):
+                while search and j < len(xml_toparse):
                     if re.search(r'</\s*tablefill-python\s*>', xml_toparse[j]):
                         search = False
                     j += 1
@@ -998,6 +1009,9 @@ class tablefill_internals_engine:
 
             t = cxml.get('tag')
             cdict[t] = cxml
+
+        if cdict == {}:
+            return
 
         # Get temporary string and numeric dictionaries
         strdict = ctables
@@ -1126,7 +1140,7 @@ class tablefill_internals_engine:
                 w = s.groups()[0]
                 todo  += [w]
                 search = True
-                while search and j <= len(xml_toparse):
+                while search and j < len(xml_toparse):
                     if re.search(r'</\s*tablefill-%s\s*>' % w, xml_toparse[j]):
                         search = False
                     j += 1
@@ -1270,6 +1284,12 @@ class tablefill_internals_engine:
             read_template = open(self.template, 'r').readlines()
         else:
             read_template = open(self.template, 'rU').readlines()
+        read_template, inline_warnings = replace_inline_placeholders(
+            read_template,
+            getattr(self, 'inline_values', {}),
+            self.format_inline_value,
+        )
+        self.warnings['inline'] += inline_warnings
         table_start   = -1
         table_search  = False
         table_tag     = ''
@@ -1298,7 +1318,15 @@ class tablefill_internals_engine:
                 elif table_search:
                     table  = self.tables[table_tag]
                     ntable = len(table)
-                    update = self.replace_line(line, table, table_entry)
+                    try:
+                        update = self.replace_line(line, table, table_entry)
+                    except PlaceholderError as exc:
+                        msg  = "Could not fill template line %d for table '%s' "
+                        msg += "starting at input entry %d. %s"
+                        raise PlaceholderError(msg % (n + 1,
+                                                     table_tag,
+                                                     table_entry + 1,
+                                                     exc))
                     read_template[n], table_entry, entry_start = update
                     if ntable < table_entry:
                         self.warnings['toolong'] += [str(n)]
@@ -1353,12 +1381,17 @@ class tablefill_internals_engine:
         searchmatch = re.search(self.label, searchline,
                                 flags = re.IGNORECASE)
         searchend   = re.search(self.end, searchline)
-        while not searchmatch and not searchend:
+        while not searchmatch and not searchend and N + 1 < len(intext):
             N += 1
             searchline  = intext[N]
             searchmatch = re.search(self.label, searchline,
                                     flags = re.IGNORECASE)
             searchend   = re.search(self.end, searchline)
+
+        if not searchmatch and not searchend:
+            msg  = "Found a table/tablefill start at template line %d but "
+            msg += "could not find a matching label or end marker before EOF."
+            raise TableFillError(msg % (start + 1))
 
         if not searchend and searchmatch:
             label = re.findall(self.label, searchline,
@@ -1380,18 +1413,55 @@ class tablefill_internals_engine:
             else:
                 self.warnings['nomatch']  += [tag]
                 warn_nomatch  = linesep + self.warn_pre
-                warn_nomatch += "NO MACHES FOR '%s' IN" + linesep + '\t'
+                warn_nomatch += "NO MATCHES FOR '%s' IN" + linesep + '\t'
                 warn_nomatch += (linesep + '\t').join(self.input)
                 warn_nomatch += linesep + "Please check input file(s)"
                 warn_nomatch  = warn_nomatch % tag + linesep
 
         return search_msg + warn_nomatch
 
+    def format_inline_value(self, entry, format_spec = None):
+        """Render a ``{{name}}`` placeholder value.
+
+        Inline values are intentionally simpler than sequential table
+        placeholders. ``{{name}}`` uses the raw value, ``{{name|,.0f}}`` uses
+        Python's format mini-language, and ``{{pvalue|*}}`` maps p-values to
+        significance stars. Existing tablefill placeholder fragments such as
+        ``{{name|#0,#}}`` are accepted for users who already know them.
+        """
+        entry = re.sub(self.matche, '\\\\\\1', entry)
+        if format_spec is None or format_spec == '':
+            return entry
+
+        spec = format_spec.strip()
+        if spec in ['*', '#*#', r'\#*\#']:
+            return self.parse_pval_to_stars('#*#', entry)
+
+        if re.search(self.matchb, spec):
+            return self.round_and_format(spec, entry)
+
+        if re.search(self.matcha, spec):
+            return re.sub(self.matcha, entry, spec, count = 1)
+
+        if re.search(self.matchf, spec):
+            return self.format_python_placeholder(spec, entry)
+
+        try:
+            return format(float(entry), spec)
+        except Exception:
+            try:
+                return format(entry, spec)
+            except Exception as exc:
+                msg  = "Unable to apply inline format '%s' to value '%s'. "
+                msg += "Original error (%s): %s"
+                raise PlaceholderError(msg % (spec, entry, exc.__class__.__name__, exc))
+
     def replace_line(self, line, table, tablen):
         r"""
-        Replaces all matches of #(#|\d+,*|{.*})#. Splits by & because
-        that's how LaTeX delimits tables. Returns how many values it
-        replaced because LaTeX can have any number of entries per line.
+        Replaces all matches of #(#|\d+,*|{.*})# in source order.
+        The engine deliberately does not infer a rectangular shape from
+        LaTeX columns, so ragged rows, multicolumn headers, and uneven
+        placeholder counts are filled top-to-bottom, left-to-right.
         """
         i = 0
         force_stop = False
@@ -1426,28 +1496,7 @@ class tablefill_internals_engine:
                 # Replace all pattern F matches ({} arbitrary python formatting)
                 if matchf:
                     entry = re.sub(self.matche, '\\\\\\1', table[tablen])
-                    if matchf.group(3) in ['date', 'time']:
-                        try:
-                            d = datetime(1960, 1, 1)
-                            if matchf.group(3) == 'date':
-                                d += timedelta(days = int(float(entry)))
-                            else:
-                                d += timedelta(seconds = int(float(entry)))
-
-                            fmt = matchf.group(1).replace('\\', '').format(d)
-                        except:
-                            msg = "Unable to apply datetime format '%s' to entry '%s'"
-                            raise Warning(msg % (matchf.group(1).replace('\\', ''), int(float(entry))))
-                    else:
-                        try:
-                            try:
-                                fmt = matchf.group(1).format(entry)
-                            except:
-                                fmt = matchf.group(1).format(float(entry))
-                        except:
-                            msg = "Unable to apply python format '%s' to entry '%s'"
-                            raise Warning(msg % (matchf.group(1), entry))
-
+                    fmt = self.format_python_placeholder(cell, entry)
                     cell    = re.sub(self.matchf, fmt,  cell, count = 1)
                     line    = re.sub(self.matchf, cell, line, count = 1)
                     tablen += 1
@@ -1464,6 +1513,36 @@ class tablefill_internals_engine:
 
         return line, tablen, starts
 
+    def format_python_placeholder(self, cell, entry):
+        matchf = re.search(self.matchf, cell)
+        if matchf.group(3) in ['date', 'time']:
+            try:
+                d = datetime(1960, 1, 1)
+                if matchf.group(3) == 'date':
+                    d += timedelta(days = int(float(entry)))
+                else:
+                    d += timedelta(seconds = int(float(entry)))
+
+                return matchf.group(1).replace('\\', '').format(d)
+            except Exception as exc:
+                msg = "Unable to apply datetime format '%s' to entry '%s'. Original error (%s): %s"
+                raise PlaceholderError(msg % (matchf.group(1).replace('\\', ''),
+                                             entry,
+                                             exc.__class__.__name__,
+                                             exc))
+        else:
+            try:
+                try:
+                    return matchf.group(1).format(entry)
+                except:
+                    return matchf.group(1).format(float(entry))
+            except Exception as exc:
+                msg = "Unable to apply python format '%s' to entry '%s'. Original error (%s): %s"
+                raise PlaceholderError(msg % (matchf.group(1),
+                                             entry,
+                                             exc.__class__.__name__,
+                                             exc))
+
     def round_and_format(self, cell, entry):
         """
         Rounds entry according to the format in cell. Note Decimal's
@@ -1471,20 +1550,30 @@ class tablefill_internals_engine:
         digits as the input passed. format(str, ',d') returns str with
         comma as thousands separator.
         """
-        precision, comma = re.findall(self.matchb, cell)[0]
-        precision = int(precision)
-        roundas   = 0 if precision == 0 else pow(10, -precision)
-        roundas   = Decimal(str(roundas))
-        complex_match = re.match(self.matchg, entry.replace(" ", ""))
-        if complex_match:
-            real_part, i_part = complex_match.groups()
-            real_rounded = self.round_and_format_helper(real_part, cell, roundas, comma)
-            i_rounded    = self.round_and_format_helper(i_part,    cell, roundas, comma)
-            i_sign       = "+" if not i_rounded.startswith('-') else ""
-            rounded      = real_rounded + i_sign + i_rounded
-        else:
-            rounded = self.round_and_format_helper(entry, cell, roundas, comma)
-        return re.sub(self.matchb, rounded, cell, count = 1)
+        try:
+            precision, comma = re.findall(self.matchb, cell)[0]
+            precision = int(precision)
+            roundas   = 0 if precision == 0 else pow(10, -precision)
+            roundas   = Decimal(str(roundas))
+            complex_match = re.match(self.matchg, entry.replace(" ", ""))
+            if complex_match:
+                real_part, i_part = complex_match.groups()
+                real_rounded = self.round_and_format_helper(real_part, cell, roundas, comma)
+                i_rounded    = self.round_and_format_helper(i_part,    cell, roundas, comma)
+                i_sign       = "+" if not i_rounded.startswith('-') else ""
+                rounded      = real_rounded + i_sign + i_rounded
+            else:
+                rounded = self.round_and_format_helper(entry, cell, roundas, comma)
+            return re.sub(self.matchb, rounded, cell, count = 1)
+        except Exception as exc:
+            msg  = "Unable to apply numeric placeholder '%s' to entry '%s'. "
+            msg += "This usually means a text or parenthesized value was sent "
+            msg += "to a numeric placeholder; use ### or {{name}} for literal "
+            msg += "text. Original error (%s): %s"
+            raise PlaceholderError(msg % (cell.strip(),
+                                         entry,
+                                         exc.__class__.__name__,
+                                         exc))
 
     def round_and_format_helper(self, entry, cell, roundas, comma):
         """
@@ -1578,6 +1667,11 @@ class tablefill_internals_engine:
             self.warn_msg['toolong'] += " but their corresponding input matrix"
             self.warn_msg['toolong'] += " ran out of entries: "
             self.warn_msg['toolong'] += self.warnings['toolong'] + imend
+
+        if self.warnings['inline'] != '':
+            self.warn_msg['inline']  = "WARNING: Some inline {{name}} "
+            self.warn_msg['inline'] += "placeholders were not filled: "
+            self.warn_msg['inline'] += self.warnings['inline'] + imend
 
         msg  = ["This file was produced by 'tablefill.py'"]
         msg += ["\tTemplate file: %s" % self.template]

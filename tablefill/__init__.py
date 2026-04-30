@@ -1,8 +1,16 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 __author__  = """Mauricio Caceres Bravo"""
 __email__   = 'mauricio.caceres.bravo@gmail.com'
-__version__ = '0.10.1'
+__version__ = '0.11.0'
 
+from .errors import InputParseError, PlaceholderError, TableFillError
 from .tablefill import tablefill
+
+__all__ = [
+    'InputParseError',
+    'PlaceholderError',
+    'TableFillError',
+    'tablefill',
+]

@@ -1,0 +1,36 @@
+\documentclass{article}
+\begin{document}
+This specification uses 48,210 observations.
+Mean income is 57,890.2.
+
+\begin{table}
+\caption{Standard errors below estimates}
+\label{tab:se_below}
+\begin{tabular}{lccc}
+Treatment & 0.125*** & -0.456 & 0.789** \\
+          & (0.031) & (0.100) & (0.222) \\
+Controls  & Yes & No & Yes \\
+N         & 48,210 & 48,210 & 48,210 \\
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{Standard errors beside estimates}
+\label{tab:inline_se}
+\begin{tabular}{lccc}
+Treatment & 0.125*** (0.031) & -0.456 (0.100) & 0.789** (0.222) \\
+Controls  & Yes & No & Yes \\
+N         & 48,210 & 48,210 & 48,210 \\
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{Ragged multicolumn header}
+\label{tab:ragged}
+\begin{tabular}{lcccc}
+\multicolumn{3}{l}{Header A: 101} & \multicolumn{2}{r}{Header B: 202} \\
+Row A & A1 & A2 & A3 & A4 \\
+Row B & B1 & B2 & B3 & B4 \\
+\end{tabular}
+\end{table}
+\end{document}

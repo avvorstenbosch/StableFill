@@ -41,3 +41,8 @@
 *.xdy
 *site*
 build
+.venv
+.uv-cache
+.uv-python
+uv.lock
+*.egg-info

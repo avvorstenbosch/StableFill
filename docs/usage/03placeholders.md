@@ -34,7 +34,11 @@ Placeholder  | Format
 `#*#`        | Interpret input as p-value and replce with a star corresponding so significance. Detault is `* 0.1, **0.05, ***0.01`.
 `#\d+%#`     | Round to `\d+` digits; interpret as percentage.
 `#|#|#`      | Get the absolute value of the number.
-`#{.*}#`     | Arbitrary python format. Anything that `string.format()` will accept is allowed. In Python 2.6, you must prepend `0:`, that is `{0:.+}`.
+`#{.*}#`     | Arbitrary python format. Anything that `string.format()` will accept is allowed.
+
+For named one-off statistics outside a sequential table, use the inline
+syntax documented in [Inline Values](07-inline-values.md), for example
+`{{val:sample_size|,.0f}}`.
 
 Consider the following examples
 
@@ -80,6 +84,52 @@ escaped, so the engine also matches \#. Consider:
 
 Matrices
 --------
+
+### Fill Order and Ragged Layouts
+
+Tablefill fills placeholders in document order: top to bottom by template
+line, and left to right within each line. It does not require every LaTeX row
+to contain the same number of placeholders, and it does not infer a rectangular
+shape from `&` column separators.
+
+This means a header with two placeholders followed by body rows with four
+placeholders each is valid as long as the input values are written in the same
+order:
+
+Input:
+
+```
+<tab:Ragged>
+101 202
+A1 A2 A3 A4
+B1 B2 B3 B4
+C1 C2 C3 C4
+```
+
+Template:
+
+```latex
+\label{tab:ragged}
+\multicolumn{3}{l}{Header A: #0,#} & \multicolumn{2}{r}{Header B: #0,#} \\
+Row A & ### & ### & ### & ### \\
+Row B & ### & ### & ### & ### \\
+Row C & ### & ### & ### & ### \\
+```
+
+Output:
+
+```latex
+\label{tab:ragged}
+\multicolumn{3}{l}{Header A: 101} & \multicolumn{2}{r}{Header B: 202} \\
+Row A & A1 & A2 & A3 & A4 \\
+Row B & B1 & B2 & B3 & B4 \\
+Row C & C1 & C2 & C3 & C4 \\
+```
+
+The main ambiguous case is intentional blank cells in the input. By default,
+blank values, `.`, `NA`, and similar missing tokens are skipped. If a literal
+blank should occupy a placeholder, use a quoted string or customize
+`--na-filters`.
 
 ### Simple Example
 

@@ -1,0 +1,36 @@
+\documentclass{article}
+\begin{document}
+This specification uses {{val:sample_size|,.0f}} observations.
+Mean income is {{mean_income|,.1f}}.
+
+\begin{table}
+\caption{Standard errors below estimates}
+\label{tab:se_below}
+\begin{tabular}{lccc}
+Treatment & ### & ### & ### \\
+          & ### & ### & ### \\
+Controls  & ### & ### & ### \\
+N         & #0,# & #0,# & #0,# \\
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{Standard errors beside estimates}
+\label{tab:inline_se}
+\begin{tabular}{lccc}
+Treatment & ### & ### & ### \\
+Controls  & ### & ### & ### \\
+N         & #0,# & #0,# & #0,# \\
+\end{tabular}
+\end{table}
+
+\begin{table}
+\caption{Ragged multicolumn header}
+\label{tab:ragged}
+\begin{tabular}{lcccc}
+\multicolumn{3}{l}{Header A: #0,#} & \multicolumn{2}{r}{Header B: #0,#} \\
+Row A & ### & ### & ### & ### \\
+Row B & ### & ### & ### & ### \\
+\end{tabular}
+\end{table}
+\end{document}
