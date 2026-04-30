@@ -56,9 +56,9 @@ Inline values support compact formats:
 Placeholder          | Meaning
 -------------------- | -------
 `{{val:name}}`       | Insert the value as written.
-`{{val:name|,.0f}}`  | Use Python's format mini-language.
-`{{val:p_value|*}}`  | Convert a p-value to significance stars.
-`{{val:name|#0,#}}`  | Use an existing tablefill numeric placeholder fragment.
+`{{val:name\|,.0f}}`  | Use Python's format mini-language.
+`{{val:p_value\|*}}`  | Convert a p-value to significance stars.
+`{{val:name\|#0,#}}`  | Use an existing tablefill numeric placeholder fragment.
 
 `<Tab:...>` blocks are also available as inline values. When a table tag is
 referenced with `{{val:tag}}`, StableFill inserts the first non-missing entry

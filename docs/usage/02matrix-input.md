@@ -1,12 +1,6 @@
 Matrix Shapes
 =============
 
-!!! info "Warning"
-    This page is under construction
-
-!!! note "Note"
-    This section was adapted from the readme for the original tablefill.py
-
 Input files must contain rows of numbers or characters preceded by
 `<label>`. Rows may be tab-delimited or whitespace-delimited. Tabs are
 still preferred when text cells contain spaces, but whitespace-delimited

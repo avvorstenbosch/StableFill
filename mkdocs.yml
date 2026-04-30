@@ -1,23 +1,19 @@
 # Project information
-site_name:        'tablefill'
-site_description: 'Automated system for LaTeX and LyX table updating'
+site_name:        'StableFill'
+site_description: 'Update LaTeX, LyX, and Markdown tables and inline values'
 
 # Repository
-repo_name: 'avvorstenbosch/tablefill'
-repo_url: 'https://github.com/avvorstenbosch/tablefill'
+repo_name: 'avvorstenbosch/StableFill'
+repo_url: 'https://github.com/avvorstenbosch/StableFill'
 edit_uri: 'blob/master/docs/'
-site_url: 'https://avvorstenbosch.github.io/tablefill/'
+site_url: 'https://avvorstenbosch.github.io/StableFill/'
 
 nav:
     - Home: index.md
     - Getting Started:    getting-started.md
-    - Sample Programs:    sample-programs.md
     - Usage:
         Matrix Input:     usage/02matrix-input.md
         Placeholders:     usage/03placeholders.md
-        Common Issues:    usage/04common-issues.md
-        Advanced Options: usage/05advanced-options.md
-        XML Engine:       usage/06xml-engine.md
         Inline Values:    usage/07-inline-values.md
         LaTeX Economics:  usage/08-latex-economics.md
 
@@ -30,10 +26,6 @@ theme:
         text: 'Open Sans'
         code: 'Inconsolata'
 
-extra_javascript:
-    - helpers.js
-    - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML
-
 markdown_extensions:
     - meta
     - toc
@@ -43,16 +35,4 @@ markdown_extensions:
     - codehilite:
         guess_lang: false
 
-# use_pygments:   True
-# noclasses:      True
-# pygments_style: monokai
-
 use_directory_urls: false
-
-extra_css:
-    - css/extra-material.css
-
-# extra_css:
-#     - css/extra-rtd.css
-#     - css/extra-material.css
-#     - css/extra-material-dark.css

@@ -1,12 +1,6 @@
 Placeholders
 ============
 
-!!! info "Warning"
-    This page is under construction
-
-!!! note "Note"
-    This section was adapted from the readme for the original tablefill.py
-
 The template placeholders determine where the numbers from the input
 files are and how they will be displayed. Every table in the template
 file (if it is to be filled) must appear within a table environment.
@@ -31,9 +25,9 @@ Placeholder  | Format
 `###`        | Replace as is; input can be text (all other placeholders require numbers).
 `#\d+#`      | Round to `\d+` digits.
 `#\d+,#`     | Round to `\d+` digits; add thousands comma separator.
-`#*#`        | Interpret input as p-value and replce with a star corresponding so significance. Detault is `* 0.1, **0.05, ***0.01`.
+`#*#`        | Interpret input as a p-value and replace it with significance stars. Default thresholds are `* 0.1`, `** 0.05`, and `*** 0.01`.
 `#\d+%#`     | Round to `\d+` digits; interpret as percentage.
-`#|#|#`      | Get the absolute value of the number.
+`#\|#\|#`    | Get the absolute value of the number.
 `#{.*}#`     | Arbitrary python format. Anything that `string.format()` will accept is allowed.
 
 For named one-off statistics outside a sequential table, use the inline

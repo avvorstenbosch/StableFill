@@ -37,8 +37,8 @@ tablefill = "tablefill.tablefill:main"
 stablefill = "tablefill.tablefill:main"
 
 [project.urls]
-Homepage = "https://github.com/avvorstenbosch/tablefill"
-Documentation = "https://avvorstenbosch.github.io/tablefill/"
+Homepage = "https://github.com/avvorstenbosch/StableFill"
+Documentation = "https://avvorstenbosch.github.io/StableFill/"
 
 [tool.setuptools.packages.find]
 include = ["tablefill", "tablefill.*"]

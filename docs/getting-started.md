@@ -12,13 +12,13 @@ Installation
 Recommended for command-line use:
 
 ```bash
-uv tool install "git+https://github.com/avvorstenbosch/tablefill"
+uv tool install "git+https://github.com/avvorstenbosch/StableFill"
 ```
 
 Alternative with pip:
 
 ```bash
-python -m pip install "git+https://github.com/avvorstenbosch/tablefill"
+python -m pip install "git+https://github.com/avvorstenbosch/StableFill"
 ```
 
 Run StableFill with either command name:
@@ -31,7 +31,7 @@ tablefill  -i results.txt -o paper_filled.tex paper_template.tex
 For development:
 
 ```bash
-git clone https://github.com/avvorstenbosch/tablefill
+git clone https://github.com/avvorstenbosch/StableFill
 cd tablefill
 uv run --extra test python -m pytest -q
 ```
@@ -136,7 +136,7 @@ Placeholder        | Meaning
 `#*#`              | Convert a p-value to significance stars.
 `#{:.2f}#`         | Use Python format syntax.
 `{{val:name}}`     | Insert a named inline value.
-`{{val:name|,.0f}}` | Insert a formatted named inline value.
+`{{val:name\|,.0f}}` | Insert a formatted named inline value.
 
 Tables
 ------

@@ -20,13 +20,13 @@ Quickstart
 Install from the repository into an isolated command-line tool environment:
 
 ```bash
-uv tool install "git+https://github.com/avvorstenbosch/tablefill"
+uv tool install "git+https://github.com/avvorstenbosch/StableFill"
 ```
 
 Or install with pip:
 
 ```bash
-python -m pip install "git+https://github.com/avvorstenbosch/tablefill"
+python -m pip install "git+https://github.com/avvorstenbosch/StableFill"
 ```
 
 Run StableFill:
@@ -47,7 +47,7 @@ Development
 Clone the repository and run the tests with `uv`:
 
 ```bash
-git clone https://github.com/avvorstenbosch/tablefill
+git clone https://github.com/avvorstenbosch/StableFill
 cd tablefill
 uv run --extra test python -m pytest -q
 ```
@@ -56,7 +56,7 @@ Normal table filling has no required runtime dependencies. Install the optional
 NumPy extra only if you use XML tables with NumPy syntax:
 
 ```bash
-python -m pip install "git+https://github.com/avvorstenbosch/tablefill[numpy]"
+python -m pip install "git+https://github.com/avvorstenbosch/StableFill[numpy]"
 ```
 
 Basic Usage
@@ -137,7 +137,7 @@ Placeholder      | Meaning
 `#*#`            | Convert a p-value to significance stars.
 `#{:.2f}#`       | Use Python format syntax.
 `{{val:name}}`   | Insert a named inline value.
-`{{val:name|,.0f}}` | Insert a formatted named inline value.
+`{{val:name\|,.0f}}` | Insert a formatted named inline value.
 
 Economics Tables
 ----------------
@@ -181,11 +181,11 @@ in the order the placeholders appear.
 Documentation
 -------------
 
-- [Getting Started](https://avvorstenbosch.github.io/tablefill/getting-started.html)
-- [Matrix Input](https://avvorstenbosch.github.io/tablefill/usage/02matrix-input.html)
-- [Placeholders](https://avvorstenbosch.github.io/tablefill/usage/03placeholders.html)
-- [Inline Values](https://avvorstenbosch.github.io/tablefill/usage/07-inline-values.html)
-- [LaTeX Economics Tables](https://avvorstenbosch.github.io/tablefill/usage/08-latex-economics.html)
+- [Getting Started](https://avvorstenbosch.github.io/StableFill/getting-started.html)
+- [Matrix Input](https://avvorstenbosch.github.io/StableFill/usage/02matrix-input.html)
+- [Placeholders](https://avvorstenbosch.github.io/StableFill/usage/03placeholders.html)
+- [Inline Values](https://avvorstenbosch.github.io/StableFill/usage/07-inline-values.html)
+- [LaTeX Economics Tables](https://avvorstenbosch.github.io/StableFill/usage/08-latex-economics.html)
 
 Background
 ----------
