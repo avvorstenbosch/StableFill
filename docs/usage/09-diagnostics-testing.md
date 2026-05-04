@@ -59,8 +59,9 @@ For LaTeX, a fillable table is:
 - containing sequential placeholders such as `###`, `#0,#`, or `#*#`
 
 Sequential table placeholders are ignored in comments unless
-`--fill-comments` is used. Tables with matching `tab:` labels but no
-placeholders are left unchanged.
+`--fill-comments` is used. Tables with `tab:` labels but no placeholders are
+treated as already-filled content: they are left unchanged and do not produce
+missing-input warnings.
 
 Inline placeholders such as `{{val:sample_size}}` are independent of table
 regions and can appear in prose, captions, notes, or table text.

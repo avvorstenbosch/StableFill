@@ -1247,6 +1247,7 @@ class tablefill_internals_engine:
         table_search  = False
         table_tag     = ''
         table_entry   = 0
+        table_nomatch_warned = False
 
         warn = self.warn_pre
         for n in range(len(read_template)):
@@ -1254,6 +1255,7 @@ class tablefill_internals_engine:
             if not table_search and self.scanner.is_table_start(line):
                 table_search, table_tag = self.search_label(read_template, n)
                 table_start  = n
+                table_nomatch_warned = False
                 search_msg   = self.get_search_msg(table_search, table_tag, n)
                 print_verbose(self.verbose, search_msg)
 
@@ -1295,6 +1297,11 @@ class tablefill_internals_engine:
                         warn_toolong  = warn_toolong % aux_toolong
 
                         print_verbose(self.verbose, warn + warn_toolong)
+                elif table_tag != '':
+                    if not table_nomatch_warned:
+                        self.warnings['nomatch'] += [table_tag]
+                        table_nomatch_warned = True
+                    print_verbose(self.verbose, warn + self.get_nomatch_msg(table_tag))
                 elif table_start == -1:
                     self.warnings['notable'] += [str(n)]
 
@@ -1310,16 +1317,21 @@ class tablefill_internals_engine:
                     warn_nolabel += " Skipping..."
                     print_verbose(self.verbose, warn + warn_nolabel)
 
-            if self.scanner.is_table_end(line) and table_search:
-                search_msg   = "Table '%s' in line %d ended in line %d."
-                search_msg  += " %d replacements were made." % table_entry
-                search_msg   = search_msg % (table_tag, table_start, n)
-                print_verbose(self.verbose, search_msg + linesep)
+            if self.scanner.is_table_end(line) and table_start != -1:
+                if table_search:
+                    search_msg   = "Table '%s' in line %d ended in line %d."
+                    search_msg  += " %d replacements were made." % table_entry
+                    search_msg   = search_msg % (table_tag, table_start, n)
+                    print_verbose(self.verbose, search_msg + linesep)
+                elif table_tag != '':
+                    search_msg = "Table '%s' in line %d ended in line %d. Skipped."
+                    print_verbose(self.verbose, (search_msg % (table_tag, table_start, n)) + linesep)
 
                 table_start  = -1
                 table_search = False
                 table_tag    = ''
                 table_entry  = 0
+                table_nomatch_warned = False
 
         self.filled_template = read_template
 
@@ -1333,7 +1345,6 @@ class tablefill_internals_engine:
         return result.matched, result.tag
 
     def get_search_msg(self, search, tag, start):
-        warn_nomatch = ''
         search_msg   = "Found table in line %d. " % start
         if tag == '':
             search_msg += "No label. Skipping..."
@@ -1342,14 +1353,16 @@ class tablefill_internals_engine:
             if search:
                 search_msg += "Found match!"
             else:
-                self.warnings['nomatch']  += [tag]
-                warn_nomatch  = linesep + self.warn_pre
-                warn_nomatch += "NO MATCHES FOR '%s' IN" + linesep + '\t'
-                warn_nomatch += (linesep + '\t').join(self.input)
-                warn_nomatch += linesep + "Please check input file(s)"
-                warn_nomatch  = warn_nomatch % tag + linesep
+                search_msg += "No input match; will only warn if placeholders are found."
 
-        return search_msg + warn_nomatch
+        return search_msg
+
+    def get_nomatch_msg(self, tag):
+        warn_nomatch  = "NO MATCHES FOR '%s' IN" + linesep + '\t'
+        warn_nomatch += (linesep + '\t').join(self.input)
+        warn_nomatch += linesep + "Please check input file(s)"
+
+        return warn_nomatch % tag + linesep
 
     def escape_latex_entry(self, entry):
         """Escape unescaped LaTeX special characters in replacement text."""

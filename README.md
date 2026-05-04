@@ -130,7 +130,8 @@ document order: top to bottom, left to right.
 For LaTeX, a fillable table is a `\begin{table}` or `\begin{subtable}` region
 with a `\label{tab:name}` inside it. StableFill only fills sequential table
 placeholders inside matched table regions. Tables with no placeholders are left
-unchanged, even if their label has a matching `<Tab:...>` input block.
+unchanged and do not produce missing-input warnings, even if their label looks
+like `tab:name`.
 
 Common placeholders:
 

@@ -354,6 +354,73 @@ class TestModernFeatures(unittest.TestCase):
             self.assertIn("placeholder='#0,#'", msg)
             self.assertIn('not-a-number', msg)
 
+    def test_unmatched_already_filled_table_does_not_warn(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_file = self.write_file(tmpdir, 'tables.txt', """
+                <Tab:other_table>
+                1 2 3
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                \begin{table}
+                \caption{Already final}
+                \label{tab:already_final}
+                \begin{tabular}{lr}
+                Group & Estimate \\
+                A & 1.25 \\
+                B & 2.50 \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'filled.tex')
+
+            status, msg = tablefill(input=input_file,
+                                    template=template,
+                                    output=output,
+                                    filetype='tex',
+                                    nohead=True,
+                                    silent=True)
+
+            self.assertEqual('SUCCESS', status, msg)
+            self.assertNotIn('NO MATCHES', msg)
+            with open(output, 'r') as handle:
+                filled = handle.read()
+            self.assertIn('A & 1.25', filled)
+            self.assertIn(r'\label{tab:already_final}', filled)
+
+    def test_unmatched_table_with_placeholders_still_warns(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_file = self.write_file(tmpdir, 'tables.txt', """
+                <Tab:other_table>
+                1 2 3
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                \begin{table}
+                \caption{Needs input}
+                \label{tab:missing_input}
+                \begin{tabular}{lr}
+                Value & #0,# \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'filled.tex')
+
+            status, msg = tablefill(input=input_file,
+                                    template=template,
+                                    output=output,
+                                    filetype='tex',
+                                    nohead=True,
+                                    silent=True)
+
+            self.assertEqual('WARNING', status)
+            self.assertIn('missing_input', msg)
+            self.assertIn("not in 'input' file", msg)
+
     @unittest.skipUnless(shutil.which('xelatex'), 'xelatex is not installed')
     def test_latex_economics_example_compiles_to_pdf(self):
         with tempfile.TemporaryDirectory() as tmpdir:

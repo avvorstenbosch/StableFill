@@ -165,7 +165,8 @@ the same number of placeholders.
 In LaTeX, a fillable table is a `\begin{table}` or `\begin{subtable}` region
 with a `\label{tab:name}` inside it. StableFill only fills sequential table
 placeholders inside matched table regions. A table that already contains final
-values and no placeholders is left unchanged.
+values and no placeholders is left unchanged and does not produce a
+missing-input warning.
 
 Economics Regression Tables
 ---------------------------
