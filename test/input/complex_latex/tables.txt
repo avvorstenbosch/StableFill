@@ -1,0 +1,68 @@
+<Val:sample_size>
+48210
+
+<Val:weighted_population>
+1250000
+
+<Val:mean_income>
+57890.25
+
+<Val:median_income>
+49650.75
+
+<Val:employment_rate>
+0.734
+
+<Val:p_value>
+0.024
+
+<Val:survey_label>
+A&B-Longitudinal-Study
+
+<Tab:summary_panel>
+2026	1250000
+48210	0.734	57890.25	A&B cohorts
+31250	0.681	62500.4	Metro & suburban
+16960	0.512	42100.7	Rural manufacturing
+Cross-check passed	2026-04-30
+
+<Tab:regression_below>
+0.1254*** -0.0456 0.2100** -0.3333***
+(0.0312) (0.1004) (0.0801) (0.0712)
+0.0712** 0.0881 0.0944* 0.1020**
+(0.0300) (0.0567) (0.0499) (0.0501)
+Yes No Yes Yes
+48210 48210 40122 39011
+0.245 0.301 0.377 0.402
+
+<Tab:regression_inline>
+0.125*** (0.031) -0.046 (0.100) 0.210** (0.080)
+0.071** (0.030) 0.088 (0.057) 0.094* (0.050)
+Yes No Yes
+48210 48210 40122
+0.009 0.230 0.045
+
+<Tab:heterogeneity>
+18400	902
+East & coastal	1.234	West corridor	2.345	1200
+North & logistics	0.875	South clinics	1.111	980
+High-frequency cells	Manual review complete
+0.125	0.225	0.325	0.425	Stable
+
+<Tab:event_study>
+2019 640
+-0.04 0.02 -1.88 0.061
+-0.01 0.02 -0.33 0.742
+omitted
+0.09 0.03 2.76 0.006
+0.14	0.04	3.25	0.001	Robust & persistent
+
+<Tab:already_filled>
+unused tokens should not appear
+
+<Tab:false_positive>
+unused false positive tokens
+
+<Tab:comment_safety>
+Passed	12345	6.789
+R&D Unit	80% Complete	A&B

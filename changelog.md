@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+- Preserve the character before unescaped `&` and `%` when escaping LaTeX replacement text.
+- Escape percent signs produced by inline Python format strings such as `{{rate|.1%}}`.
+
+### Improvements
+
+- Split template grammar/scanning, placeholder formatting, rendering, and structured diagnostics into focused modules.
+- Attach file, line, table tag, entry index, placeholder, and source-line context to expected parse and placeholder failures.
+
+### Tests
+
+- Add a long complex LaTeX integration fixture with ragged tables, economics regression outputs, inline values, already-filled tables, comments, and false-positive guards.
+
 ## tablefill-0.11.0 (2026-04-30)
 
 ### Features

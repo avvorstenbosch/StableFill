@@ -106,8 +106,6 @@ Python 3.8 and newer.
 
 from __future__ import division, print_function
 from os import linesep, path, access, W_OK, system, chdir, remove
-from decimal import Decimal, ROUND_HALF_UP
-from datetime import datetime, timedelta
 from traceback import format_exc
 from operator import itemgetter
 from sys import exit as sysexit
@@ -120,13 +118,19 @@ import sys
 import re
 
 try:
-    from .errors import PlaceholderError, TableFillError
+    from .errors import DiagnosticContext, PlaceholderError
     from .inline import replace_inline_placeholders
     from .parsers import parse_input_files
+    from .placeholders import PlaceholderFormatter, PlaceholderPatterns
+    from .renderers import renderer_for_filetype
+    from .template_scanner import TemplateScanner, grammar_for_filetype
 except ImportError:
-    from errors import PlaceholderError, TableFillError
+    from errors import DiagnosticContext, PlaceholderError
     from inline import replace_inline_placeholders
     from parsers import parse_input_files
+    from placeholders import PlaceholderFormatter, PlaceholderPatterns
+    from renderers import renderer_for_filetype
+    from template_scanner import TemplateScanner, grammar_for_filetype
 
 try:
     # Python <= 3.9
@@ -230,15 +234,6 @@ def concat_files(flist):
 
 
 # Backwards-compatible string formatting
-def compat_format(x):
-    if version_info >= (2, 7):
-        return format(x, ',d')
-    else:
-        import locale
-        locale.setlocale(locale.LC_ALL, 'en_US')
-        return locale.format("%d", x, grouping = True)
-
-
 # Backwards-compatible list flattening
 # http://stackoverflow.com/questions/2158395/
 def flatten(l):
@@ -847,71 +842,29 @@ class tablefill_internals_engine:
         Define the regular expressions to use to find a token to fill,
         the start/end of a table, etc. based on the file type.
         """
-        # The regexes are looking for
-        #   - matche:   strings to escape (&, %)
-        #   - match0:   either matcha or matchb
-        #   - matcha:   ### for non-numeric matches or #*# for p-val parsing
-        #   - matchb:   numeric matches (#\d+%?#, \#\d+,?\#)
-        #   - matchc:   (-?)integer(.decimal)?
-        #   - matchd:   absolute value
-        #   - matchf:   python formatting
-        #   - matchg:   imaginary numbers
-        #   - comments: comment
+        patterns = PlaceholderPatterns()
+        grammar = grammar_for_filetype(self.filetype)
+        self.scanner = TemplateScanner(grammar, template=self.template)
+        self.placeholder_formatter = PlaceholderFormatter(
+            patterns,
+            renderer_for_filetype(self.filetype),
+            self.pvals,
+            self.stars,
+        )
+
         self.tags      = '^<Tab:(.+)>[\r\n' + linesep + ']'
-        self.matche    = r'[^\\](%|&)'
-        self.match0    = r'\\?#\|?((\d+)(,?|\\?%|\\?\.)?|\\?(#|\*)|{0?(:.*?)?}(date|time)?)\|?\\?#'
-        self.matcha    = r'\\?#\\?(#|\*)\\?#'
-        self.matchb    = r'\\?#\|?(\d+)(,?|\\?%|\\?\.)\|?\\?#'
-        self.matchc    = r'(-?\d+)(\.?\d*)'
-        self.matchd    = r'\\?#\|.{1,4}\|\\?#'
-        self.matchf    = r'\\?#({0?(:.*?)?})(date|time)?\\?#'
-        self.matchg    = r'([+-]?[\d.]+)([+-][\d.]+)i$'
-        self.comments  = r'^\s*%'
-
-        # TODO: Allow custom regexes!
-
-        # TODO: Make this strict: Comment labels only for comments,
-        # latex labels only for latex, etc.
-
-        dictRegexes = {
-            'tex': {
-                # 'begin': r'.*\\begin{table}.*',
-                # 'end':   r'.*\\end{table}.*',
-                # 'label': r'.*\\label{tab:(.+)}'
-                # 'label': r'(.*\\label{tab:(.+)})|(^\s*%\s*tablefill:start\s+tab:(.+)\b)'
-                'begin': r'(^\s*%\s*tablefill:start\s+tab:.+$)|(.*\\begin{(sub)?table}.*)',
-                'end':   r'(^\s*%\s*tablefill:end.*$)|(.*\\end{(sub)?table}.*)',
-                'label': r'(?:^\s*%\s*tablefill:start\s+|.*\\label{)tab:(.+?)(?:}|\b)'
-            },
-            'lyx': {
-                'begin':  r'.*\\begin_inset Float table.*',
-                'end':    r'</lyxtabular>',
-                'label':  r'name "tab:(.+)"'
-            },
-            'md': {
-                'begin': r'(^<!--.*tablefill:start.*-->$)|(^\s*\\begin{table}.*)',
-                'end':   r'(^<!--.*tablefill:end.*-->$)|(.*\\end{table}.*)',
-                'label': r'(?:^<!--.*\b|.*\\label{)tab:(.+)(?:\b.*-->$|})'
-            }
-            # 'md': {
-            #     'begin': r'^<!--.*tablefill:start.*-->$',
-            #     'end':   r'^<!--.*tablefill:end.*-->$',
-            #     'label': r'^<!--.*\btab:(.+)\b.*-->$'
-            # }
-        }
-
-        if self.filetype == 'tex':
-            self.begin = dictRegexes['tex']['begin']
-            self.end   = dictRegexes['tex']['end']
-            self.label = dictRegexes['tex']['label']
-        elif self.filetype == 'lyx':
-            self.begin = dictRegexes['lyx']['begin']
-            self.end   = dictRegexes['lyx']['end']
-            self.label = dictRegexes['lyx']['label']
-        elif self.filetype == 'md':
-            self.begin = dictRegexes['md']['begin']
-            self.end   = dictRegexes['md']['end']
-            self.label = dictRegexes['md']['label']
+        self.matche    = patterns.escape
+        self.match0    = patterns.any_placeholder
+        self.matcha    = patterns.raw_or_stars
+        self.matchb    = patterns.numeric
+        self.matchc    = patterns.integer_decimal
+        self.matchd    = patterns.absolute
+        self.matchf    = patterns.python_format
+        self.matchg    = patterns.imaginary
+        self.comments  = grammar.comment
+        self.begin     = grammar.begin
+        self.end       = grammar.end
+        self.label     = grammar.label
 
     def get_parsed_tables(self):
         """
@@ -1298,19 +1251,16 @@ class tablefill_internals_engine:
         warn = self.warn_pre
         for n in range(len(read_template)):
             line = read_template[n]
-            if not table_search and re.search(self.begin, line):
+            if not table_search and self.scanner.is_table_start(line):
                 table_search, table_tag = self.search_label(read_template, n)
                 table_start  = n
                 search_msg   = self.get_search_msg(table_search, table_tag, n)
                 print_verbose(self.verbose, search_msg)
 
-            found =                             \
-                re.search(self.matcha, line) or \
-                re.search(self.matchb, line) or \
-                re.search(self.matchf, line)
+            found = self.placeholder_formatter.has_placeholder(line)
 
             if found:
-                if re.search(self.comments, line.strip()) and not self.fillc:
+                if self.scanner.is_comment(line) and not self.fillc:
                     warn_incomments  = r"Line %d matches #(#|\d+,*|{.*})#"
                     warn_incomments += " but it appears to be commented out."
                     warn_incomments += " Skipping..."
@@ -1319,14 +1269,17 @@ class tablefill_internals_engine:
                     table  = self.tables[table_tag]
                     ntable = len(table)
                     try:
-                        update = self.replace_line(line, table, table_entry)
+                        update = self.replace_line(line, table, table_entry,
+                                                   line_number=n + 1,
+                                                   table_tag=table_tag)
                     except PlaceholderError as exc:
-                        msg  = "Could not fill template line %d for table '%s' "
-                        msg += "starting at input entry %d. %s"
-                        raise PlaceholderError(msg % (n + 1,
-                                                     table_tag,
-                                                     table_entry + 1,
-                                                     exc))
+                        msg = "Could not fill template placeholder."
+                        context = DiagnosticContext(file=self.template,
+                                                    line=n + 1,
+                                                    table=table_tag,
+                                                    entry_index=table_entry + 1,
+                                                    context=line.rstrip('\r\n'))
+                        raise PlaceholderError(msg, context=context, cause=exc)
                     read_template[n], table_entry, entry_start = update
                     if ntable < table_entry:
                         self.warnings['toolong'] += [str(n)]
@@ -1357,7 +1310,7 @@ class tablefill_internals_engine:
                     warn_nolabel += " Skipping..."
                     print_verbose(self.verbose, warn + warn_nolabel)
 
-            if re.search(self.end, line) and table_search:
+            if self.scanner.is_table_end(line) and table_search:
                 search_msg   = "Table '%s' in line %d ended in line %d."
                 search_msg  += " %d replacements were made." % table_entry
                 search_msg   = search_msg % (table_tag, table_start, n)
@@ -1376,30 +1329,8 @@ class tablefill_internals_engine:
         \end{table} statement. Returns label value ('' if none is found)
         and whether it matches a tag in the tables file
         """
-        N = start
-        searchline  = intext[N]
-        searchmatch = re.search(self.label, searchline,
-                                flags = re.IGNORECASE)
-        searchend   = re.search(self.end, searchline)
-        while not searchmatch and not searchend and N + 1 < len(intext):
-            N += 1
-            searchline  = intext[N]
-            searchmatch = re.search(self.label, searchline,
-                                    flags = re.IGNORECASE)
-            searchend   = re.search(self.end, searchline)
-
-        if not searchmatch and not searchend:
-            msg  = "Found a table/tablefill start at template line %d but "
-            msg += "could not find a matching label or end marker before EOF."
-            raise TableFillError(msg % (start + 1))
-
-        if not searchend and searchmatch:
-            label = re.findall(self.label, searchline,
-                               flags = re.IGNORECASE)[0]
-            label = label.strip('{}"').lower()
-            return label in self.tables, label
-        else:
-            return False, ''
+        result = self.scanner.search_label(intext, start, self.tables.keys())
+        return result.matched, result.tag
 
     def get_search_msg(self, search, tag, start):
         warn_nomatch = ''
@@ -1420,6 +1351,11 @@ class tablefill_internals_engine:
 
         return search_msg + warn_nomatch
 
+    def escape_latex_entry(self, entry):
+        """Escape unescaped LaTeX special characters in replacement text."""
+
+        return self.placeholder_formatter.escape_entry(entry)
+
     def format_inline_value(self, entry, format_spec = None):
         """Render a ``{{name}}`` placeholder value.
 
@@ -1429,179 +1365,21 @@ class tablefill_internals_engine:
         significance stars. Existing tablefill placeholder fragments such as
         ``{{name|#0,#}}`` are accepted for users who already know them.
         """
-        entry = re.sub(self.matche, '\\\\\\1', entry)
-        if format_spec is None or format_spec == '':
-            return entry
+        return self.placeholder_formatter.format_inline_value(entry, format_spec)
 
-        spec = format_spec.strip()
-        if spec in ['*', '#*#', r'\#*\#']:
-            return self.parse_pval_to_stars('#*#', entry)
-
-        if re.search(self.matchb, spec):
-            return self.round_and_format(spec, entry)
-
-        if re.search(self.matcha, spec):
-            return re.sub(self.matcha, entry, spec, count = 1)
-
-        if re.search(self.matchf, spec):
-            return self.format_python_placeholder(spec, entry)
-
-        try:
-            return format(float(entry), spec)
-        except Exception:
-            try:
-                return format(entry, spec)
-            except Exception as exc:
-                msg  = "Unable to apply inline format '%s' to value '%s'. "
-                msg += "Original error (%s): %s"
-                raise PlaceholderError(msg % (spec, entry, exc.__class__.__name__, exc))
-
-    def replace_line(self, line, table, tablen):
+    def replace_line(self, line, table, tablen, line_number=None, table_tag=None):
         r"""
         Replaces all matches of #(#|\d+,*|{.*})# in source order.
         The engine deliberately does not infer a rectangular shape from
         LaTeX columns, so ragged rows, multicolumn headers, and uneven
         placeholder counts are filled top-to-bottom, left-to-right.
         """
-        i = 0
-        force_stop = False
-        starts = tablen
-        match0 = re.search(self.match0, line)
-        while match0 and not force_stop:
-            s, e = match0.span()
-            cell = line[s:e]
-            matcha = re.search(self.matcha, cell)
-            matchb = re.search(self.matchb, cell)
-            matchf = re.search(self.matchf, cell)
-
-            if len(table) > tablen:
-                # Replace all pattern A matches (simply replace the text)
-                if matcha:
-                    entry    = re.sub(self.matche, '\\\\\\1', table[tablen])
-                    if '*' in matcha.groups():
-                        cell = self.parse_pval_to_stars(cell, entry)
-                    else:
-                        cell = re.sub(self.matcha, entry, cell, count = 1)
-
-                    line    = re.sub(self.matcha, cell, line, count = 1)
-                    tablen += 1
-
-                # Replace all pattern B matches (round, comma and % format)
-                if matchb:
-                    entry   = re.sub(self.matche, '\\\\\\1', table[tablen])
-                    cell    = self.round_and_format(cell, entry)
-                    line    = re.sub(self.matchb, cell, line, count = 1)
-                    tablen += 1
-
-                # Replace all pattern F matches ({} arbitrary python formatting)
-                if matchf:
-                    entry = re.sub(self.matche, '\\\\\\1', table[tablen])
-                    fmt = self.format_python_placeholder(cell, entry)
-                    cell    = re.sub(self.matchf, fmt,  cell, count = 1)
-                    line    = re.sub(self.matchf, cell, line, count = 1)
-                    tablen += 1
-
-            else:
-                if matcha or matchb or matchf:
-                    starts  = tablen if tablen - starts == i + 1 else starts
-                    tablen += 1
-
-                force_stop = True
-
-            match0 = re.search(self.match0, line)
-            i += 1
-
-        return line, tablen, starts
-
-    def format_python_placeholder(self, cell, entry):
-        matchf = re.search(self.matchf, cell)
-        if matchf.group(3) in ['date', 'time']:
-            try:
-                d = datetime(1960, 1, 1)
-                if matchf.group(3) == 'date':
-                    d += timedelta(days = int(float(entry)))
-                else:
-                    d += timedelta(seconds = int(float(entry)))
-
-                return matchf.group(1).replace('\\', '').format(d)
-            except Exception as exc:
-                msg = "Unable to apply datetime format '%s' to entry '%s'. Original error (%s): %s"
-                raise PlaceholderError(msg % (matchf.group(1).replace('\\', ''),
-                                             entry,
-                                             exc.__class__.__name__,
-                                             exc))
-        else:
-            try:
-                try:
-                    return matchf.group(1).format(entry)
-                except:
-                    return matchf.group(1).format(float(entry))
-            except Exception as exc:
-                msg = "Unable to apply python format '%s' to entry '%s'. Original error (%s): %s"
-                raise PlaceholderError(msg % (matchf.group(1),
-                                             entry,
-                                             exc.__class__.__name__,
-                                             exc))
-
-    def round_and_format(self, cell, entry):
-        """
-        Rounds entry according to the format in cell. Note Decimal's
-        quantize makes the object have the same number of significant
-        digits as the input passed. format(str, ',d') returns str with
-        comma as thousands separator.
-        """
-        try:
-            precision, comma = re.findall(self.matchb, cell)[0]
-            precision = int(precision)
-            roundas   = 0 if precision == 0 else pow(10, -precision)
-            roundas   = Decimal(str(roundas))
-            complex_match = re.match(self.matchg, entry.replace(" ", ""))
-            if complex_match:
-                real_part, i_part = complex_match.groups()
-                real_rounded = self.round_and_format_helper(real_part, cell, roundas, comma)
-                i_rounded    = self.round_and_format_helper(i_part,    cell, roundas, comma)
-                i_sign       = "+" if not i_rounded.startswith('-') else ""
-                rounded      = real_rounded + i_sign + i_rounded
-            else:
-                rounded = self.round_and_format_helper(entry, cell, roundas, comma)
-            return re.sub(self.matchb, rounded, cell, count = 1)
-        except Exception as exc:
-            msg  = "Unable to apply numeric placeholder '%s' to entry '%s'. "
-            msg += "This usually means a text or parenthesized value was sent "
-            msg += "to a numeric placeholder; use ### or {{name}} for literal "
-            msg += "text. Original error (%s): %s"
-            raise PlaceholderError(msg % (cell.strip(),
-                                         entry,
-                                         exc.__class__.__name__,
-                                         exc))
-
-    def round_and_format_helper(self, entry, cell, roundas, comma):
-        """
-        Internal helper for round and format
-        """
-        if '%' in comma:
-            dentry = 100 * Decimal(entry)
-        elif '.' in comma:
-            dentry = Decimal(entry) / 100
-        else:
-            dentry = Decimal(entry)
-        dentry    = abs(dentry) if re.search(self.matchd, cell) else dentry
-        rounded   = str(dentry.quantize(roundas, rounding = ROUND_HALF_UP))
-        if ',' in comma:
-            integer_part, decimal_part = re.findall(self.matchc, rounded)[0]
-            neg      = '-' if re.match('^-0', integer_part) else ''
-            rounded  = neg + compat_format(int(integer_part)) + decimal_part
-        return rounded
-
-    def parse_pval_to_stars(self, cell, entry):
-        """
-        Parse a p-value to significance symbols. The default is to
-        parse 0.1, 0.05, 0.01 to *, **, ***, but the user can specify
-        arbitrary thresholds and symbols.
-        """
-        pos  = sum([float(entry) < p for p in self.pvals]) - 1
-        star = '' if pos < 0 else self.stars[pos]
-        return re.sub(self.matcha, star, cell, count = 1)
+        return self.placeholder_formatter.replace_line(line,
+                                                       table,
+                                                       tablen,
+                                                       template=self.template,
+                                                       line_number=line_number,
+                                                       table_tag=table_tag)
 
     def get_notification_message(self):
         r"""

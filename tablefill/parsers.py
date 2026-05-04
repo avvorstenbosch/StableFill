@@ -14,9 +14,9 @@ import shlex
 from typing import Dict, Iterable, List, Sequence
 
 try:
-    from .errors import InputParseError
+    from .errors import DiagnosticContext, InputParseError
 except ImportError:
-    from errors import InputParseError
+    from errors import DiagnosticContext, InputParseError
 
 
 TAG_RE = re.compile(
@@ -91,9 +91,14 @@ def parse_input_files(filenames: Sequence[str], missing_values: Iterable[str]) -
                 if current_key is None:
                     message = (
                         "Could not parse input row before any <Tab:...> or "
-                        "<Val:...> label at %s:%d: %r"
+                        "<Val:...> label."
                     )
-                    raise InputParseError(message % (filename, line_number, line.strip()))
+                    context = DiagnosticContext(
+                        file=filename,
+                        line=line_number,
+                        context=line.strip(),
+                    )
+                    raise InputParseError(message, context=context)
 
                 entries = split_input_row(line)
                 if current_kind in ("tab", "table"):

@@ -9,6 +9,8 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tablefill import tablefill
+from tablefill.placeholders import PlaceholderPatterns
+from tablefill.template_scanner import TemplateScanner, grammar_for_filetype
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -304,6 +306,53 @@ class TestModernFeatures(unittest.TestCase):
             self.assertIn('InputParseError', msg)
             self.assertIn('broken.txt', msg)
             self.assertIn(':1', msg)
+            self.assertIn('location=', msg)
+            self.assertIn("context='1 2 3'", msg)
+
+    def test_template_scanner_classifies_tex_grammar(self):
+        scanner = TemplateScanner(grammar_for_filetype('tex'))
+        patterns = PlaceholderPatterns()
+
+        self.assertTrue(scanner.is_table_start(r'\begin{table}'))
+        self.assertTrue(scanner.is_table_end(r'\end{table}'))
+        self.assertTrue(scanner.is_comment('% ### remains a comment'))
+        self.assertEqual('summary', scanner.extract_label(r'\label{tab:summary}'))
+        self.assertTrue(scanner.has_placeholder('Value & #0,# \\', patterns.active_patterns()))
+        self.assertFalse(scanner.has_placeholder(r'Price \#1 is ordinary text', patterns.active_patterns()))
+
+    def test_numeric_placeholder_error_reports_structured_context(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_file = self.write_file(tmpdir, 'tables.txt', """
+                <Tab:broken_numeric>
+                not-a-number
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                \begin{table}
+                \label{tab:broken_numeric}
+                \begin{tabular}{lr}
+                Bad value & #0,# \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'filled.tex')
+
+            status, msg = tablefill(input=input_file,
+                                    template=template,
+                                    output=output,
+                                    filetype='tex',
+                                    nohead=True,
+                                    silent=True)
+
+            self.assertEqual('ERROR', status)
+            self.assertIn('PLACEHOLDER_ERROR', msg)
+            self.assertIn('template.tex', msg)
+            self.assertIn('table=broken_numeric', msg)
+            self.assertIn('entry=1', msg)
+            self.assertIn("placeholder='#0,#'", msg)
+            self.assertIn('not-a-number', msg)
 
     @unittest.skipUnless(shutil.which('xelatex'), 'xelatex is not installed')
     def test_latex_economics_example_compiles_to_pdf(self):

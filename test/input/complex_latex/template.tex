@@ -1,0 +1,189 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{array}
+\usepackage{longtable}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\renewcommand{\arraystretch}{1.12}
+
+\begin{document}
+
+\section*{StableFill Complex Integration Fixture}
+
+This document is intentionally long and varied. It checks inline values, ragged
+table layouts, standard errors above and below estimates, escaped ampersands,
+comment safety, and tables that carry table-style tags but are not intended to
+be filled. The sample contains {{val:sample_size|,.0f}} observations and
+represents {{weighted_population|,.0f}} people. Mean income is
+{{mean_income|,.1f}}, median income is {{median_income|,.1f}}, employment is
+{{employment_rate|.1%}}, and the headline p-value is significant{{p_value|*}}.
+The source is {{survey_label}}. Text such as A \& B, AT\&T, R\&D, and Price
+\#1 appears here to make sure ordinary prose is not treated as fill syntax.
+
+\begin{table}[!htbp]
+\centering
+\caption{Ragged summary panel with text values and escaped ampersands}
+\label{tab:summary_panel}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.24\linewidth}rrrr}
+\multicolumn{5}{l}{Panel A: year #0,#, weighted population #0,#} \\
+\hline
+Group & Count & Share & Mean income & Notes \\
+\hline
+All workers & #0,# & #1\%#\% & #0,# & ### \\
+Urban & #0,# & #1\%#\% & #0,# & ### \\
+Rural & #0,# & #1\%#\% & #0,# & ### \\
+\multicolumn{2}{l}{Audit cell: ###} & \multicolumn{3}{r}{Last updated ###} \\
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section*{Economics Output With Standard Errors}
+
+The next two tables encode the two regression formats that tend to be fragile
+in papers: estimates with standard errors in a separate row, and estimates with
+standard errors beside the estimate in the same visual model column.
+
+\begin{table}[!htbp]
+\centering
+\caption{Regression table with standard errors below estimates}
+\label{tab:regression_below}
+\begin{tabular}{lrrrr}
+\hline
+ & Model 1 & Model 2 & Model 3 & Model 4 \\
+\hline
+Treatment & ### & ### & ### & ### \\
+          & ### & ### & ### & ### \\
+Post reform & ### & ### & ### & ### \\
+            & ### & ### & ### & ### \\
+Controls & ### & ### & ### & ### \\
+Observations & #0,# & #0,# & #0,# & #0,# \\
+R-squared & #3# & #3# & #3# & #3# \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\caption{Regression table with standard errors beside estimates}
+\label{tab:regression_inline}
+\begin{tabular}{lrrr}
+\hline
+ & Model 1 & Model 2 & Model 3 \\
+\hline
+Treatment & ### & ### & ### \\
+Post reform & ### & ### & ### \\
+Controls & ### & ### & ### \\
+Observations & #0,# & #0,# & #0,# \\
+P-value & #*# & #*# & #*# \\
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section*{Ragged Tables and Mixed Cell Types}
+
+The following layouts deliberately use uneven numbers of placeholders across
+rows. Filling should proceed in document order from top to bottom and left to
+right, without trying to infer a rectangular matrix from the LaTeX ampersands.
+
+\begin{table}[!htbp]
+\centering
+\caption{Heterogeneity table with multicolumn headers and uneven rows}
+\label{tab:heterogeneity}
+\begin{tabular}{lrrrrr}
+\hline
+\multicolumn{6}{l}{Panel A: #0,# households and #0,# firms} \\
+\hline
+Sector & East & West & North & South & Total \\
+Manufacturing & ### & #2# & ### & #2# & #0,# \\
+Services & ### & #2# & ### & #2# & #0,# \\
+\multicolumn{3}{l}{Panel B: ###} & \multicolumn{3}{r}{###} \\
+Small firms & #2# & #2# & #2# & #2# & ### \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\caption{Event study with ragged annotations}
+\label{tab:event_study}
+\begin{tabular}{lrrrrr}
+\hline
+\multicolumn{6}{l}{Event study: baseline year #0,#; treated units #0,#} \\
+\hline
+Relative year & Estimate & Std. error & t-stat & Stars & Note \\
+Year -3 & #2# & #2# & #2# & #*# & \\
+Year -2 & #2# & #2# & #2# & #*# & \\
+Year -1 & \multicolumn{5}{l}{Reference period: ###} \\
+Year 0 & #2# & #2# & #2# & #*# & \\
+Year 1 & #2# & #2# & #2# & #*# & ### \\
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section*{Tables That Should Stay Stable}
+
+Some tables in a paper are already final. They may still have labels that look
+like table tags, but without placeholders their contents should remain exactly
+as authored.
+
+\begin{table}[!htbp]
+\centering
+\caption{Already-filled table with a matching tag and no placeholders}
+\label{tab:already_filled}
+\begin{tabular}{lrr}
+\hline
+Group & Published estimate & Published standard error \\
+\hline
+North & 11.2 & 1.4 \\
+South & 9.8 & 1.1 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\caption{False-positive guard table}
+\label{tab:false_positive}
+\begin{tabular}{lp{0.56\linewidth}}
+\hline
+Case & Text \\
+\hline
+Ampersands & AT\&T, R\&D, A \& B Markets, and Johnson \& Johnson are text. \\
+Hashes & Price \#1, model \#2, and C\#\# are not placeholders. \\
+Escaped braces & \{\{not-an-inline-placeholder\}\} should remain literal. \\
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section*{Comment and Escaping Safety}
+
+The final page checks that commented placeholders remain comments and that
+text values containing ampersands and percent signs are escaped before LaTeX
+sees them.
+
+\begin{table}[!htbp]
+\centering
+\caption{Comment safety and escaped replacement values}
+\label{tab:comment_safety}
+\begin{tabular}{lrr}
+\hline
+Check & Value & Detail \\
+\hline
+% This comment contains ### and #0,# but should not be filled.
+Document order & ### & #0,# \\
+Decimal formatting & #2# & OK \\
+Escaping & ### & ### \\
+Ampersand escaping & ### & OK \\
+\hline
+\end{tabular}
+\end{table}
+
+This page closes the fixture. If StableFill can fill this file from the command
+line and the resulting TeX compiles, then the main modern workflows have been
+exercised together rather than only in isolated unit tests.
+
+\end{document}
