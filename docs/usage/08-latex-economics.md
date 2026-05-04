@@ -85,7 +85,7 @@ Row B & ### & ### & ### & ### \\
 Running:
 
 ```bash
-tablefill -i tables.txt -o filled.tex template.tex
+stablefill -i tables.txt -o filled.tex template.tex
 ```
 
 produces:

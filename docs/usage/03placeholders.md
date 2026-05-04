@@ -81,7 +81,7 @@ Matrices
 
 ### Fill Order and Ragged Layouts
 
-Tablefill fills placeholders in document order: top to bottom by template
+StableFill fills placeholders in document order: top to bottom by template
 line, and left to right within each line. It does not require every LaTeX row
 to contain the same number of placeholders, and it does not infer a rectangular
 shape from `&` column separators.

@@ -1,4 +1,4 @@
-"""Domain-specific exceptions and diagnostics for tablefill."""
+"""Domain-specific exceptions and diagnostics for StableFill."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Optional
 
 @dataclass
 class DiagnosticContext:
-    """Structured context attached to expected tablefill failures."""
+    """Structured context attached to expected StableFill failures."""
 
     file: Optional[str] = None
     line: Optional[int] = None
@@ -43,7 +43,7 @@ class DiagnosticContext:
 
 
 class TableFillError(Exception):
-    """Base exception raised for expected tablefill failures."""
+    """Base exception raised for expected StableFill failures."""
 
     code = "TABLEFILL_ERROR"
 

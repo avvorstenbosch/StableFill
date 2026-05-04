@@ -3,16 +3,16 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tablefill"
+name = "stablefill"
 version = "0.11.0"
-description = "Automatically update LaTeX, Markdown, and LyX tables."
+description = "StableFill updates LaTeX, Markdown, and LyX tables and inline values."
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
     {name = "Mauricio Caceres Bravo", email = "mauricio_caceres_bravo@brown.edu"},
 ]
-keywords = ["tablefill", "stablefill", "latex", "markdown", "lyx", "tables"]
+keywords = ["stablefill", "tablefill", "latex", "markdown", "lyx", "tables"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -33,15 +33,15 @@ numpy = ["numpy"]
 test = ["pytest"]
 
 [project.scripts]
-tablefill = "tablefill.tablefill:main"
-stablefill = "tablefill.tablefill:main"
+stablefill = "stablefill:main"
+tablefill = "stablefill:main"
 
 [project.urls]
 Homepage = "https://github.com/avvorstenbosch/StableFill"
 Documentation = "https://avvorstenbosch.github.io/StableFill/"
 
 [tool.setuptools.packages.find]
-include = ["tablefill", "tablefill.*"]
+include = ["stablefill", "tablefill", "tablefill.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["test"]

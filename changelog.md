@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Packaging
+
+- Rename the distribution metadata to `stablefill` while preserving the legacy `tablefill` command and import path as aliases.
+- Add `from stablefill import stablefill` and `python -m stablefill` as the preferred Python API and module entry point.
+
 ### Bug fixes
 
 - Preserve the character before unescaped `&` and `%` when escaping LaTeX replacement text.

@@ -19,7 +19,7 @@ class TestComplexLatexDocument(unittest.TestCase):
         output = os.path.join(tmpdir, 'stablefill_complex_filled.tex')
         result = subprocess.run([sys.executable,
                                  '-m',
-                                 'tablefill',
+                                 'stablefill',
                                  '--silent',
                                  '--no-header',
                                  '-i',

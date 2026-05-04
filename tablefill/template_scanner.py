@@ -105,7 +105,7 @@ class TemplateScanner:
             context=lines[start].rstrip('\r\n') if start < line_count else None,
         )
         message = (
-            "Found a table/tablefill start but could not find a matching "
+            "Found a table/StableFill start but could not find a matching "
             "label or end marker before EOF."
         )
         raise TemplateScanError(message, context=context)

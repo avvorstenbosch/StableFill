@@ -53,7 +53,7 @@ def normalize_key(name: str) -> str:
 
 
 def parse_input_files(filenames: Sequence[str], missing_values: Iterable[str]) -> ParsedInputs:
-    """Parse tablefill input files into table and named-value dictionaries.
+    """Parse StableFill input files into table and named-value dictionaries.
 
     Args:
         filenames: Input text files to parse, in precedence order.
@@ -119,7 +119,7 @@ def split_input_row(line: str) -> List[str]:
 
     Tab-delimited rows use tabs exactly as before. Rows without tabs are split
     with shell-style quoting, except a whole quoted line is kept as one value
-    so old examples like ``'tablefill example'`` keep their literal quotes.
+    so old quoted single-value examples keep their literal quotes.
     """
 
     if "\t" in line:

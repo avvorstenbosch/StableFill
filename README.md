@@ -41,6 +41,9 @@ The historical command name is still available:
 tablefill -i results.txt -o paper_filled.tex paper_template.tex
 ```
 
+The Python distribution is named `stablefill`. The old `tablefill` command and
+`from tablefill import tablefill` import remain as compatibility aliases.
+
 Development
 -----------
 
@@ -52,7 +55,7 @@ cd StableFill
 uv run --extra test python -m pytest -q
 ```
 
-Normal table filling has no required runtime dependencies. Install the optional
+Normal StableFill table filling has no required runtime dependencies. Install the optional
 NumPy extra only if you use XML tables with NumPy syntax:
 
 ```bash

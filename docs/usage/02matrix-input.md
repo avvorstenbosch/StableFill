@@ -55,8 +55,8 @@ is equivalent to:
 3	1	2
 ```
 
-This feature is useful as several languages outputs missing values as
-NA, blank, or ".". Last, `tablefill` understands scientific notation of
+This feature is useful as several languages output missing values as
+NA, blank, or ".". Last, StableFill understands scientific notation of
 the form: `[numbers].[numbers]e(+/-)[numbers]`
 
 ```

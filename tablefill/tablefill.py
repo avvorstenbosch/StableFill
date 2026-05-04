@@ -6,26 +6,26 @@
 Description
 -----------
 
-tablefill is a python module designed to fill LaTeX and Lyx tables
-with output from text files (usually output from Stata or Matlab). The
-original tablefill does the same for LyX files only, and has fewer
-error checks. Note this is intended both for command line _AND_ script
-usage. Hence both the following are valid
+StableFill is a Python module designed to fill LaTeX, LyX, and Markdown
+tables and inline values with output from text files. It is based on the
+original tablefill project, and keeps the historical ``tablefill`` command and
+import path as compatibility aliases. Both of the following are valid:
 
 >>> from tablefill import tablefill
+>>> from stablefill import stablefill
 
-$ tablefill --help
+$ stablefill --help
 
 Usage
 -----
 
-tablefill [-h] [-v] [FLAGS] [-i [INPUT [INPUT ...]]] [-o OUTPUT]
+stablefill [-h] [-v] [FLAGS] [-i [INPUT [INPUT ...]]] [-o OUTPUT]
           [--pvals [PVALS [PVALS ...]]] [--stars [STARS [STARS ...]]]
           [--na-filters [FILTER [FILTER ...]]] [-t {auto,lyx,tex,md}]
           [--xml-tables [INPUT [INPUT ...]]]
           TEMPLATE
 
-Fill tagged tables in LaTeX, LyX, and Markdown files with external text tables
+Fill tagged tables and inline values in LaTeX, LyX, and Markdown files.
 
 positional arguments:
   TEMPLATE              Code template
@@ -62,9 +62,9 @@ flags:
   --verbose             Verbose printing (for debugging)
   --silent              Try to say nothing
 
-For details on the files and the replace engine, see the online documentation.
+For details on the files and the replacement engine, see the documentation.
 
-    https://mcaceresb.github.io/tablefill/getting-started.html
+    https://avvorstenbosch.github.io/StableFill/getting-started.html
 
 WARNING
 -------
@@ -76,28 +76,26 @@ even if there is a comment halfway through.
 Examples
 --------
 
-If you installed the program via PIP, then simply run
+If you installed the program, then simply run
 
 $ ls
 test.tex
 test_table.txt
-$ tablefill test.tex --force --silent
+$ stablefill test.tex --force --silent
 
-If you have a copy of `tablefill.py`, then run
+The historical command name remains available:
 
 $ ls
-tablefill.py
 test.tex
 test_table.txt
 test_filled.txt
-$ python tablefill.py test.tex -i test_table.txt -o output.tex --verbose
+$ tablefill test.tex -i test_table.txt -o output.tex --verbose
 
 Notes
 -----
 
-Several try-catch pairs and error checks are redundant because right
-now this may also be run from python and not just from the command line
-(done for backwards compatibility's sake). Current releases target
+Several legacy try-catch pairs and error checks remain because StableFill may
+be run from Python as well as from the command line. Current releases target
 Python 3.8 and newer.
 """
 
@@ -145,17 +143,17 @@ try:
 except:
     numpyok = False
 
-__program__   = "tablefill.py"
+__program__   = "stablefill"
 __usage__     = """[-h] [-v] [FLAGS] [-i [INPUT [INPUT ...]]] [-o OUTPUT]
                     [--pvals [PVALS [PVALS ...]]] [--stars [STARS [STARS ...]]]
                     [--na-filters [FILTER [FILTER ...]]] [-t {auto,lyx,tex,md}]
                     [--xml-tables [INPUT [INPUT ...]]]
                     TEMPLATE"""
-__purpose__   = "Fill tagged tables in LaTeX files with external text tables"
+__purpose__   = "Fill tagged tables and inline values in LaTeX, LyX, and Markdown files"
 __author__    = "Mauricio Caceres <caceres@nber.org>"
 __created__   = "Thu Jun 18, 2015"
 __updated__   = "Thu Apr 30, 2026"
-__version__   = __program__ + " version 0.11.0 updated " + __updated__
+__version__   = "StableFill version 0.11.0 updated " + __updated__
 
 # Define basestring in a backwards-compatible way
 try:
@@ -181,30 +179,30 @@ def main():
     WARNING: This function expects command-line inputs to exist.
     """
 
-    fill = tablefill_internals_cliparse()
+    fill = StableFillCLIParser()
     fill.get_input_parser()
     fill.get_parsed_arguments()
     fill.get_argument_strings()
     fill.get_file_type()
 
-    exit, exit_msg = tablefill(template       = fill.template,
-                               input          = fill.input,
-                               output         = fill.output,
-                               filetype       = fill.ext,
-                               verbose        = fill.verbose,
-                               silent         = fill.silent,
-                               pvals          = fill.pvals,
-                               stars          = fill.stars,
-                               nafilters      = fill.nafilters,
-                               fillc          = fill.fillc,
-                               nohead         = fill.nohead,
-                               log_file       = fill.log_file,
-                               log_only       = fill.log_only,
-                               legacy_parsing = fill.legacy_parsing,
-                               numpy_syntax   = fill.numpy_syntax,
-                               use_floats     = fill.use_floats,
-                               ignore_xml     = fill.ignore_xml,
-                               xml_tables     = fill.xml_tables)
+    exit, exit_msg = stablefill(template       = fill.template,
+                                input          = fill.input,
+                                output         = fill.output,
+                                filetype       = fill.ext,
+                                verbose        = fill.verbose,
+                                silent         = fill.silent,
+                                pvals          = fill.pvals,
+                                stars          = fill.stars,
+                                nafilters      = fill.nafilters,
+                                fillc          = fill.fillc,
+                                nohead         = fill.nohead,
+                                log_file       = fill.log_file,
+                                log_only       = fill.log_only,
+                                legacy_parsing = fill.legacy_parsing,
+                                numpy_syntax   = fill.numpy_syntax,
+                                use_floats     = fill.use_floats,
+                                ignore_xml     = fill.ignore_xml,
+                                xml_tables     = fill.xml_tables)
 
     if exit == 'SUCCESS':
         fill.get_compiled()
@@ -289,7 +287,8 @@ def nested_convert(item, func):
 
 
 # ---------------------------------------------------------------------
-# tablefill
+# StableFill public function. The historical ``tablefill`` function name is
+# kept for backwards compatibility.
 
 def tablefill(silent         = False,
               verbose        = True,
@@ -307,15 +306,14 @@ def tablefill(silent         = False,
               ignore_xml     = False,
               xml_tables     = None,
               **kwargs):
-    """Fill LaTeX, LyX, or Markdown template files with external inputs
+    """Fill LaTeX, LyX, or Markdown template files with external inputs.
 
     Description
     -----------
 
-    tablefill is a python function designed to fill LaTeX, LyX, or Markdown
-    tables with output from text files (usually output from Stata or Matlab).
-    The original tablefill.py does the same but only for LyX files, and
-    has fewer error checks. The regexps are also slightly different.
+    StableFill fills LaTeX, LyX, or Markdown tables and inline values with
+    output from text files. The historical function name ``tablefill`` remains
+    available for backwards compatibility.
 
     Required Input
     --------------
@@ -327,9 +325,9 @@ def tablefill(silent         = False,
     output : str
         Filled template to be produced.
 
-    For details on the files and the replace engine, see the online documentation.
+    For details on the files and the replacement engine, see the documentation.
 
-        https://mcaceresb.github.io/tablefill/getting-started.html
+        https://avvorstenbosch.github.io/StableFill/getting-started.html
 
     Optional Input
     --------------
@@ -350,37 +348,37 @@ def tablefill(silent         = False,
 
     Usage
     -----
-    exit, exit_msg = tablefill(template = 'template_file',
-                               input    = 'input_file(s)',
-                               output   = 'output_file')
+    exit, exit_msg = stablefill(template = 'template_file',
+                                input    = 'input_file(s)',
+                                output   = 'output_file')
     """
     if log_file:
         sys.stdout = Logger(log_file, log_only)
 
-    print_verbose(verbose, "Arguments look OK. Will run tablefill.")
+    print_verbose(verbose, "Arguments look OK. Will run StableFill.")
     try:
         verbose = verbose and not silent
         logmsg  = "Parsing arguments..."
         print_verbose(verbose, logmsg)
-        fill_engine = tablefill_internals_engine(filetype,
-                                                 verbose,
-                                                 silent,
-                                                 pvals,
-                                                 stars,
-                                                 nafilters,
-                                                 fillc,
-                                                 nohead,
-                                                 legacy_parsing,
-                                                 numpy_syntax,
-                                                 use_floats,
-                                                 ignore_xml,
-                                                 xml_tables)
+        fill_engine = StableFillEngine(filetype,
+                                       verbose,
+                                       silent,
+                                       pvals,
+                                       stars,
+                                       nafilters,
+                                       fillc,
+                                       nohead,
+                                       legacy_parsing,
+                                       numpy_syntax,
+                                       use_floats,
+                                       ignore_xml,
+                                       xml_tables)
 
         fill_engine.get_parsed_arguments(kwargs)
         fill_engine.get_file_type()
         fill_engine.get_regexps()
 
-        logmsg  = "Parsing tables in into dictionary:" + linesep + '\t'
+        logmsg  = "Parsing StableFill input blocks into dictionaries:" + linesep + '\t'
         logmsg += (linesep + '\t').join(tolist(fill_engine.input))
         print_verbose(verbose, logmsg)
         fill_engine.get_parsed_tables()
@@ -411,13 +409,16 @@ def tablefill(silent         = False,
         print_silent(silent, exit_msg)
         return exit, exit_msg
 
+
+stablefill = tablefill
+
 # ---------------------------------------------------------------------
-# tablefill_internals_cliparse
+# StableFill CLI parsing internals
 
 
-class tablefill_internals_cliparse:
+class StableFillCLIParser:
     """
-    WARNING: Internal class to parse arguments to pass to tablefill
+    WARNING: Internal class to parse arguments to pass to StableFill.
     """
     def __init__(self):
         self.compiler = {'tex': "xelatex ",
@@ -606,7 +607,7 @@ class tablefill_internals_cliparse:
 
     def get_argument_strings(self):
         """
-        Get arguments as strings to pass to tablefill
+        Get arguments as strings to pass to StableFill.
         """
         self.template  = path.abspath(self.args.template[0])
         self.input     = ' '.join([path.abspath(f) for f in self.args.input])
@@ -695,11 +696,11 @@ class tablefill_internals_cliparse:
 
 
 # ---------------------------------------------------------------------
-# tablefill_internals_engine
+# StableFill engine internals
 
-class tablefill_internals_engine:
+class StableFillEngine:
     """
-    WARNING: Internal class used by tablefill_tex
+    WARNING: Internal class used by StableFill.
     """
     def __init__(self,
                  filetype       = 'auto',
@@ -1375,7 +1376,7 @@ class tablefill_internals_engine:
         Inline values are intentionally simpler than sequential table
         placeholders. ``{{name}}`` uses the raw value, ``{{name|,.0f}}`` uses
         Python's format mini-language, and ``{{pvalue|*}}`` maps p-values to
-        significance stars. Existing tablefill placeholder fragments such as
+        significance stars. Existing StableFill placeholder fragments such as
         ``{{name|#0,#}}`` are accepted for users who already know them.
         """
         return self.placeholder_formatter.format_inline_value(entry, format_spec)
@@ -1397,7 +1398,7 @@ class tablefill_internals_engine:
     def get_notification_message(self):
         r"""
         Inserts a message atop the LaTeX file that this was created by
-        tablefill_tex. includes the following warnings, when applicable
+        StableFill. Includes the following warnings, when applicable:
             - #(#|\d+,*)# is found on a line outside a table environment
             - #(#|\d+,*)# is on a table environment with no label
             - A tabular environment's label has no match in tables.txt
@@ -1464,7 +1465,7 @@ class tablefill_internals_engine:
             self.warn_msg['inline'] += "placeholders were not filled: "
             self.warn_msg['inline'] += self.warnings['inline'] + imend
 
-        msg  = ["This file was produced by 'tablefill.py'"]
+        msg  = ["This file was produced by StableFill."]
         msg += ["\tTemplate file: %s" % self.template]
         msg += ["\tInput file(s): %s" % self.input]
         msg += ["To make changes, edit the input and template files."]
@@ -1494,7 +1495,7 @@ class tablefill_internals_engine:
             self.exit_msg = linesep.join(msg)
             self.exit     = 'WARNING'
         else:
-            msg  = "All tags in '%s' successfully filled by 'tablefill.py'"
+            msg  = "All tags in '%s' successfully filled by StableFill"
             msg += linesep + "Output can be found in '%s'" + linesep
             self.exit_msg = msg % (self.template, self.output)
             self.exit     = 'SUCCESS'

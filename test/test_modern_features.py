@@ -8,6 +8,7 @@ import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from stablefill import stablefill
 from tablefill import tablefill
 from tablefill.placeholders import PlaceholderPatterns
 from tablefill.template_scanner import TemplateScanner, grammar_for_filetype
@@ -22,6 +23,9 @@ class TestModernFeatures(unittest.TestCase):
         with open(filename, 'w') as handle:
             handle.write(textwrap.dedent(contents).lstrip())
         return filename
+
+    def test_stablefill_import_and_legacy_alias_match(self):
+        self.assertIs(stablefill, tablefill)
 
     def test_inline_value_placeholders_fill_anywhere(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -245,7 +249,7 @@ class TestModernFeatures(unittest.TestCase):
 
             result = subprocess.run([sys.executable,
                                      '-m',
-                                     'tablefill',
+                                     'stablefill',
                                      '--silent',
                                      '--no-header',
                                      '-i',

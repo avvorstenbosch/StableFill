@@ -28,6 +28,9 @@ stablefill -i results.txt -o paper_filled.tex paper_template.tex
 tablefill  -i results.txt -o paper_filled.tex paper_template.tex
 ```
 
+The Python distribution is named `stablefill`. The old `tablefill` command and
+`from tablefill import tablefill` import remain as compatibility aliases.
+
 For development:
 
 ```bash
@@ -236,14 +239,17 @@ Python API
 You can also call StableFill from Python:
 
 ```python
-from tablefill import tablefill
+from stablefill import stablefill
 
-status, message = tablefill(
+status, message = stablefill(
     input="results.txt",
     template="paper_template.tex",
     output="paper_filled.tex",
 )
 ```
+
+The historical `from tablefill import tablefill` import remains available as a
+compatibility alias.
 
 More Examples
 -------------

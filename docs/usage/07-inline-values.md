@@ -2,8 +2,8 @@ Inline Values
 =============
 
 Use inline values for statistics that appear in prose, captions, notes, or any
-other non-table text. Inline values do not need `tablefill:start` or
-`tablefill:end` markers.
+other non-table text. Inline values do not need legacy `tablefill:start` or
+`tablefill:end` table markers.
 
 Input
 -----
@@ -58,7 +58,7 @@ Placeholder          | Meaning
 `{{val:name}}`       | Insert the value as written.
 `{{val:name\|,.0f}}`  | Use Python's format mini-language.
 `{{val:p_value\|*}}`  | Convert a p-value to significance stars.
-`{{val:name\|#0,#}}`  | Use an existing tablefill numeric placeholder fragment.
+`{{val:name\|#0,#}}`  | Use an existing StableFill numeric placeholder fragment.
 
 `<Tab:...>` blocks are also available as inline values. When a table tag is
 referenced with `{{val:tag}}`, StableFill inserts the first non-missing entry

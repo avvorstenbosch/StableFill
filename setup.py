@@ -35,11 +35,11 @@ setup(
         'Programming Language :: Python :: 3.12',
         'Programming Language :: Python :: 3.13',
     ],
-    description  = "Automatically update LaTeX, Markdown, and LyX tables.",
+    description  = "StableFill updates LaTeX, Markdown, and LyX tables and inline values.",
     entry_points = {
         'console_scripts': [
-            'tablefill = tablefill.tablefill:main',
-            'stablefill = tablefill.tablefill:main',
+            'stablefill = stablefill:main',
+            'tablefill = stablefill:main',
         ]
     },
     extras_require                = {'numpy': ['numpy']},
@@ -47,9 +47,9 @@ setup(
     license                       = "MIT license",
     long_description              = readme + '\n\n' + history,
     long_description_content_type = 'text/markdown',
-    keywords                      = 'tablefill',
-    name                          = 'tablefill',
-    packages                      = find_packages(include = ['tablefill', 'tablefill.*']),
+    keywords                      = 'stablefill tablefill latex markdown lyx tables',
+    name                          = 'stablefill',
+    packages                      = find_packages(include = ['stablefill', 'tablefill', 'tablefill.*']),
     python_requires               = '>=3.8',
     setup_requires                = setup_requirements,
     test_suite                    = 'tests',

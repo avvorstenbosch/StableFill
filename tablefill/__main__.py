@@ -1,4 +1,4 @@
-"""Run tablefill with ``python -m tablefill``."""
+"""Run StableFill with ``python -m tablefill``."""
 
 from .tablefill import main
 

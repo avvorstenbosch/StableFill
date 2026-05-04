@@ -6,7 +6,7 @@ __email__   = 'mauricio.caceres.bravo@gmail.com'
 __version__ = '0.11.0'
 
 from .errors import DiagnosticContext, InputParseError, PlaceholderError, TableFillError, TemplateScanError
-from .tablefill import tablefill
+from .tablefill import main, stablefill, tablefill
 
 __all__ = [
     'DiagnosticContext',
@@ -14,5 +14,7 @@ __all__ = [
     'PlaceholderError',
     'TableFillError',
     'TemplateScanError',
+    'main',
+    'stablefill',
     'tablefill',
 ]
