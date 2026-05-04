@@ -55,6 +55,18 @@ cd StableFill
 uv run --extra test python -m pytest -q
 ```
 
+Build the documentation locally:
+
+```bash
+uv run --extra docs mkdocs build --strict
+```
+
+Build the distribution artifacts:
+
+```bash
+uv run --extra dev python -m build
+```
+
 Normal StableFill table filling has no required runtime dependencies. Install the optional
 NumPy extra only if you use XML tables with NumPy syntax:
 

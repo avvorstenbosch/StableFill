@@ -37,6 +37,7 @@ For development:
 git clone https://github.com/avvorstenbosch/StableFill
 cd StableFill
 uv run --extra test python -m pytest -q
+uv run --extra docs mkdocs build --strict
 ```
 
 The Basic Workflow

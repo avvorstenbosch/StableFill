@@ -28,7 +28,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install documentation dependencies
-        run: python -m pip install mkdocs mkdocs-material
+        run: python -m pip install ".[docs]"
 
       - name: Build documentation
         run: mkdocs build --strict

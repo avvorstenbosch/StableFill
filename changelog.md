@@ -2,10 +2,14 @@
 
 ## Unreleased
 
+## StableFill 0.12.0 (2026-05-04)
+
 ### Packaging
 
 - Rename the distribution metadata to `stablefill` while preserving the legacy `tablefill` command and import path as aliases.
 - Add `from stablefill import stablefill` and `python -m stablefill` as the preferred Python API and module entry point.
+- Move implementation modules into the `stablefill` package while keeping `tablefill` as a compatibility shim.
+- Make `pyproject.toml` the single packaging metadata source, add bounded `test`, `docs`, and `dev` extras, and remove the duplicate `setup.py`.
 
 ### Bug fixes
 

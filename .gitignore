@@ -41,6 +41,7 @@
 *.xdy
 *site*
 build
+dist
 .venv
 .uv-cache
 .uv-python
