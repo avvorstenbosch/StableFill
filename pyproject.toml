@@ -41,7 +41,7 @@ Homepage = "https://github.com/avvorstenbosch/StableFill"
 Documentation = "https://avvorstenbosch.github.io/StableFill/"
 
 [tool.setuptools.packages.find]
-include = ["stablefill", "tablefill", "tablefill.*"]
+include = ["stablefill", "stablefill.*", "tablefill", "tablefill.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["test"]

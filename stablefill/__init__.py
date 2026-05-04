@@ -1,15 +1,21 @@
 """StableFill public API.
 
-The historical implementation package is still named ``tablefill`` for
-backwards compatibility, but new code can import from ``stablefill``.
+New code should import from ``stablefill``. The historical ``tablefill``
+package remains available as a compatibility alias.
 """
 
-from tablefill import (
+__author__ = "Mauricio Caceres Bravo"
+__email__ = "mauricio.caceres.bravo@gmail.com"
+__version__ = "0.11.0"
+
+from .errors import (
     DiagnosticContext,
     InputParseError,
     PlaceholderError,
     TableFillError,
     TemplateScanError,
+)
+from .tablefill import (
     main,
     stablefill,
     tablefill,

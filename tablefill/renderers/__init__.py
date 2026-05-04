@@ -1,8 +1,3 @@
-"""Output renderers used by the fill engine."""
+"""Compatibility exports for ``tablefill.renderers``."""
 
-from .latex import LatexRenderer, renderer_for_filetype
-
-__all__ = [
-    'LatexRenderer',
-    'renderer_for_filetype',
-]
+from stablefill.renderers import *  # noqa: F401,F403

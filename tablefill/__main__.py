@@ -1,6 +1,6 @@
 """Run StableFill with ``python -m tablefill``."""
 
-from .tablefill import main
+from stablefill import main
 
 
 if __name__ == "__main__":

@@ -1,12 +1,18 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""Compatibility package for the historical ``tablefill`` import path."""
 
-__author__  = """Mauricio Caceres Bravo"""
-__email__   = 'mauricio.caceres.bravo@gmail.com'
-__version__ = '0.11.0'
-
-from .errors import DiagnosticContext, InputParseError, PlaceholderError, TableFillError, TemplateScanError
-from .tablefill import main, stablefill, tablefill
+from stablefill import (
+    DiagnosticContext,
+    InputParseError,
+    PlaceholderError,
+    TableFillError,
+    TemplateScanError,
+    __author__,
+    __email__,
+    __version__,
+    main,
+    stablefill,
+    tablefill,
+)
 
 __all__ = [
     'DiagnosticContext',
@@ -17,4 +23,7 @@ __all__ = [
     'main',
     'stablefill',
     'tablefill',
+    '__author__',
+    '__email__',
+    '__version__',
 ]
