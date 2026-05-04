@@ -11,13 +11,26 @@ except ImportError:
     from parsers import normalize_key
 
 
-INLINE_RE = re.compile(r"\{\{\s*([^{}|]+?)\s*(?:\|\s*([^{}]+?)\s*)?\}\}")
+ANNOTATION_RE = r"\[\[SF:.*?\]\]"
+INLINE_RE = re.compile(
+    r"(?P<placeholder>\{\{\s*(?P<name>[^{}|]+?)\s*(?:\|\s*(?P<format>[^{}]+?)\s*)?\}\})"
+    r"(?P<annotation>%s)?" % ANNOTATION_RE
+)
+
+
+def make_annotation(value: str) -> str:
+    return "[[SF: %s]]" % value.replace("]]", "] ]")
+
+
+def strip_annotations(text: str) -> str:
+    return re.sub(ANNOTATION_RE, "", text)
 
 
 def replace_inline_placeholders(
     lines: Iterable[str],
     values: Dict[str, str],
     renderer: Callable[[str, Optional[str]], str],
+    annotate: bool = False,
 ) -> Tuple[List[str], List[str]]:
     """Replace ``{{name}}`` placeholders anywhere in template lines.
 
@@ -33,9 +46,9 @@ def replace_inline_placeholders(
     for line_number, line in enumerate(lines, start=1):
 
         def replace(match: re.Match[str]) -> str:
-            raw_key = match.group(1)
+            raw_key = match.group("name")
             key = normalize_key(raw_key)
-            format_spec = match.group(2).strip() if match.group(2) else None
+            format_spec = match.group("format").strip() if match.group("format") else None
             if key not in values:
                 warning = (
                     "line %d: inline placeholder %r has no matching input "
@@ -43,7 +56,10 @@ def replace_inline_placeholders(
                 )
                 warnings.append(warning % (line_number, match.group(0), available or "(none)"))
                 return match.group(0)
-            return renderer(values[key], format_spec)
+            rendered = renderer(values[key], format_spec)
+            if annotate:
+                return match.group("placeholder") + make_annotation(rendered)
+            return rendered
 
         rendered_lines.append(INLINE_RE.sub(replace, line))
 

@@ -128,6 +128,41 @@ The result is significant{{val:p_value|*}}.
 Use `val:` when you want prose placeholders to stand out clearly from normal
 text.
 
+Preview Values While Drafting
+-----------------------------
+
+When you want to see the values without replacing the placeholders yet, create
+an annotated copy:
+
+```bash
+stablefill --annotate -i results.txt -o paper_annotated.tex paper_template.tex
+```
+
+StableFill keeps each placeholder and writes a compact `[[SF: ...]]` preview
+beside it:
+
+```latex
+The final sample contains {{val:sample_size|,.0f}}[[SF: 48,210]] observations.
+N         & #0,#[[SF: 48,210]] & #0,#[[SF: 48,210]] & #0,#[[SF: 48,210]] \\
+```
+
+Run the annotation command again to refresh existing previews after the input
+file changes. A normal fill removes adjacent annotations while replacing the
+placeholders:
+
+```bash
+stablefill -i results.txt -o paper_filled.tex paper_annotated.tex
+```
+
+To clean annotations from a template without filling anything, use:
+
+```bash
+stablefill --remove-annotations -o paper_clean.tex paper_annotated.tex
+```
+
+Annotated LaTeX files are intended for review and may not compile. Filled files
+do not keep `[[SF: ...]]` annotations.
+
 Placeholder Formats
 -------------------
 
@@ -259,3 +294,4 @@ More Examples
 - [Inline Values](usage/07-inline-values.md)
 - [LaTeX Economics Tables](usage/08-latex-economics.md)
 - [Diagnostics and Testing](usage/09-diagnostics-testing.md)
+- [Annotation Mode](usage/10-annotations.md)

@@ -117,14 +117,14 @@ import re
 
 try:
     from .errors import DiagnosticContext, PlaceholderError
-    from .inline import replace_inline_placeholders
+    from .inline import replace_inline_placeholders, strip_annotations
     from .parsers import parse_input_files
     from .placeholders import PlaceholderFormatter, PlaceholderPatterns
     from .renderers import renderer_for_filetype
     from .template_scanner import TemplateScanner, grammar_for_filetype
 except ImportError:
     from errors import DiagnosticContext, PlaceholderError
-    from inline import replace_inline_placeholders
+    from inline import replace_inline_placeholders, strip_annotations
     from parsers import parse_input_files
     from placeholders import PlaceholderFormatter, PlaceholderPatterns
     from renderers import renderer_for_filetype
@@ -202,7 +202,9 @@ def main():
                                 numpy_syntax   = fill.numpy_syntax,
                                 use_floats     = fill.use_floats,
                                 ignore_xml     = fill.ignore_xml,
-                                xml_tables     = fill.xml_tables)
+                                xml_tables     = fill.xml_tables,
+                                annotate       = fill.annotate,
+                                remove_annotations = fill.remove_annotations)
 
     if exit == 'SUCCESS':
         fill.get_compiled()
@@ -305,6 +307,8 @@ def tablefill(silent         = False,
               use_floats     = False,
               ignore_xml     = False,
               xml_tables     = None,
+              annotate       = False,
+              remove_annotations = False,
               **kwargs):
     """Fill LaTeX, LyX, or Markdown template files with external inputs.
 
@@ -372,16 +376,19 @@ def tablefill(silent         = False,
                                        numpy_syntax,
                                        use_floats,
                                        ignore_xml,
-                                       xml_tables)
+                                       xml_tables,
+                                       annotate,
+                                       remove_annotations)
 
         fill_engine.get_parsed_arguments(kwargs)
         fill_engine.get_file_type()
         fill_engine.get_regexps()
 
-        logmsg  = "Parsing StableFill input blocks into dictionaries:" + linesep + '\t'
-        logmsg += (linesep + '\t').join(tolist(fill_engine.input))
-        print_verbose(verbose, logmsg)
-        fill_engine.get_parsed_tables()
+        if not fill_engine.remove_annotations:
+            logmsg  = "Parsing StableFill input blocks into dictionaries:" + linesep + '\t'
+            logmsg += (linesep + '\t').join(tolist(fill_engine.input))
+            print_verbose(verbose, logmsg)
+            fill_engine.get_parsed_tables()
 
         logmsg  = "Searching for labels in template:" + linesep + '\t'
         logmsg += (linesep + '\t').join(tolist(fill_engine.template))
@@ -516,6 +523,16 @@ class StableFillCLIParser:
                             action   = 'store_true',
                             help     = "Fill placeholders in comments",
                             required = False)
+        parser.add_argument('--annotate',
+                            dest     = 'annotate',
+                            action   = 'store_true',
+                            help     = "Keep placeholders and add/update [[SF: value]] annotations.",
+                            required = False)
+        parser.add_argument('--remove-annotations',
+                            dest     = 'remove_annotations',
+                            action   = 'store_true',
+                            help     = "Remove all [[SF: value]] annotations without filling.",
+                            required = False)
         parser.add_argument('-nc', '--no-header',
                             dest     = 'no_header',
                             action   = 'store_true',
@@ -580,8 +597,10 @@ class StableFillCLIParser:
         (only guess with the --force option, otherwise don't run).
         """
         args = self.parser.parse_args()
+        if args.annotate and args.remove_annotations:
+            raise ValueError("Use either --annotate or --remove-annotations, not both.")
         missing_args  = []
-        missing_args += ['INPUT'] if args.input is None else []
+        missing_args += ['INPUT'] if args.input is None and not args.remove_annotations else []
         missing_args += ['OUTPUT'] if args.output is None else []
         if missing_args != []:
             if not args.force:
@@ -595,8 +614,12 @@ class StableFillCLIParser:
                     args.input = self.rename_file(template_name,
                                                   '_table', 'txt')
                 if 'OUTPUT' in missing_args:
-                    args.output = self.rename_file(template_name,
-                                                   '_filled')
+                    suffix = '_filled'
+                    if args.annotate:
+                        suffix = '_annotated'
+                    elif args.remove_annotations:
+                        suffix = '_clean'
+                    args.output = self.rename_file(template_name, suffix)
 
         self.args = args
 
@@ -610,13 +633,15 @@ class StableFillCLIParser:
         Get arguments as strings to pass to StableFill.
         """
         self.template  = path.abspath(self.args.template[0])
-        self.input     = ' '.join([path.abspath(f) for f in self.args.input])
+        self.input     = '' if self.args.input is None else ' '.join([path.abspath(f) for f in self.args.input])
         self.output    = path.abspath(self.args.output[0])
         self.silent    = self.args.silent
         self.verbose   = self.args.verbose and not self.args.silent
         self.stars     = self.args.stars
         self.nafilters = self.args.nafilters
         self.fillc     = self.args.fill_comments
+        self.annotate  = self.args.annotate
+        self.remove_annotations = self.args.remove_annotations
         self.nohead    = self.args.no_header
         self.log_file  = self.args.log_file[0] if self.args.log_file else None
         self.log_only  = self.args.log_only
@@ -715,7 +740,9 @@ class StableFillEngine:
                  numpy_syntax   = False,
                  use_floats     = False,
                  ignore_xml     = False,
-                 xml_tables     = None):
+                 xml_tables     = None,
+                 annotate       = False,
+                 remove_annotations = False):
 
         # Get file type
         self.filetype     = filetype.lower()
@@ -752,7 +779,12 @@ class StableFillEngine:
         self.stars          = [s for (p, s) in starlist]
         self.nafilters      = nafilters
         self.fillc          = fillc
-        self.nohead         = nohead
+        if annotate and remove_annotations:
+            raise ValueError("Use either annotate or remove_annotations, not both.")
+
+        self.annotate       = annotate
+        self.remove_annotations = remove_annotations
+        self.nohead         = nohead or annotate or remove_annotations
         self.legacy_parsing = legacy_parsing
         self.numpy_syntax   = numpy_syntax
         self.use_floats     = use_floats
@@ -766,7 +798,9 @@ class StableFillEngine:
             - All files exist
             - Output directory exists and is writable
         """
-        args = ['input', 'template', 'output']
+        args = ['template', 'output']
+        if not self.remove_annotations:
+            args += ['input']
 
         # XX
         missing_args = list(filter(lambda arg: arg not in kwargs.keys(), args))
@@ -788,7 +822,9 @@ class StableFillEngine:
 
         self.template = path.abspath(kwargs['template'])
         self.output   = path.abspath(kwargs['output'])
-        self.input    = [path.abspath(ins) for ins in kwargs['input'].split()]
+        self.input = []
+        if not self.remove_annotations:
+            self.input = [path.abspath(ins) for ins in kwargs['input'].split()]
 
         infiles = [self.template] + self.input
         missing_files = list(filter(lambda f: not path.isfile(f), infiles))
@@ -1238,10 +1274,14 @@ class StableFillEngine:
             read_template = open(self.template, 'r').readlines()
         else:
             read_template = open(self.template, 'rU').readlines()
+        if self.remove_annotations:
+            self.filled_template = [strip_annotations(line) for line in read_template]
+            return
         read_template, inline_warnings = replace_inline_placeholders(
             read_template,
             getattr(self, 'inline_values', {}),
             self.format_inline_value,
+            annotate=self.annotate,
         )
         self.warnings['inline'] += inline_warnings
         table_start   = -1
@@ -1274,7 +1314,8 @@ class StableFillEngine:
                     try:
                         update = self.replace_line(line, table, table_entry,
                                                    line_number=n + 1,
-                                                   table_tag=table_tag)
+                                                   table_tag=table_tag,
+                                                   annotate=self.annotate)
                     except PlaceholderError as exc:
                         msg = "Could not fill template placeholder."
                         context = DiagnosticContext(file=self.template,
@@ -1381,7 +1422,7 @@ class StableFillEngine:
         """
         return self.placeholder_formatter.format_inline_value(entry, format_spec)
 
-    def replace_line(self, line, table, tablen, line_number=None, table_tag=None):
+    def replace_line(self, line, table, tablen, line_number=None, table_tag=None, annotate=False):
         r"""
         Replaces all matches of #(#|\d+,*|{.*})# in source order.
         The engine deliberately does not infer a rectangular shape from
@@ -1393,7 +1434,8 @@ class StableFillEngine:
                                                        tablen,
                                                        template=self.template,
                                                        line_number=line_number,
-                                                       table_tag=table_tag)
+                                                       table_tag=table_tag,
+                                                       annotate=annotate)
 
     def get_notification_message(self):
         r"""

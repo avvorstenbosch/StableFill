@@ -123,6 +123,42 @@ Those placeholders match `<Val:...>` or `<Value:...>` blocks in the input file.
 The `val:` prefix in the template is optional, but it is useful because it makes
 inline values visibly different from ordinary prose.
 
+Annotation Mode
+---------------
+
+When drafting, you can ask StableFill to keep placeholders in place and add a
+compact preview annotation with the value that would be filled:
+
+```bash
+stablefill --annotate -i results.txt -o paper_annotated.tex paper_template.tex
+```
+
+This writes annotations such as `[[SF: 48,210]]` immediately after inline and
+table placeholders:
+
+```latex
+The sample includes {{val:sample_size|,.0f}}[[SF: 48,210]] observations.
+N & #0,#[[SF: 48,210]] \\
+```
+
+Running `--annotate` again updates existing `[[SF: ...]]` annotations instead
+of adding duplicates. A normal fill consumes the placeholder and any adjacent
+annotation, so the filled document remains clean and should compile when the
+template itself is valid:
+
+```bash
+stablefill -i results.txt -o paper_filled.tex paper_annotated.tex
+```
+
+To remove annotations without filling anything, use:
+
+```bash
+stablefill --remove-annotations -o paper_clean.tex paper_annotated.tex
+```
+
+Annotated LaTeX files are meant for review and may not compile because
+`[[SF: ...]]` is visible text inserted inside placeholders.
+
 Tables
 ------
 
@@ -211,6 +247,7 @@ Documentation
 - [Inline Values](https://avvorstenbosch.github.io/StableFill/usage/07-inline-values.html)
 - [LaTeX Economics Tables](https://avvorstenbosch.github.io/StableFill/usage/08-latex-economics.html)
 - [Diagnostics and Testing](https://avvorstenbosch.github.io/StableFill/usage/09-diagnostics-testing.html)
+- [Annotation Mode](https://avvorstenbosch.github.io/StableFill/usage/10-annotations.html)
 
 Background
 ----------

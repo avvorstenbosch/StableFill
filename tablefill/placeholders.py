@@ -19,6 +19,7 @@ class PlaceholderPatterns:
 
     escape: str = r'(?<!\\)(%|&)'
     any_placeholder: str = r'\\?#\|?((\d+)(,?|\\?%|\\?\.)?|\\?(#|\*)|{0?(:.*?)?}(date|time)?)\|?\\?#'
+    annotation: str = r'\[\[SF:.*?\]\]'
     raw_or_stars: str = r'\\?#\\?(#|\*)\\?#'
     numeric: str = r'\\?#\|?(\d+)(,?|\\?%|\\?\.)\|?\\?#'
     integer_decimal: str = r'(-?\d+)(\.?\d*)'
@@ -41,6 +42,12 @@ class PlaceholderFormatter:
 
     def has_placeholder(self, line):
         return any(re.search(pattern, line) for pattern in self.patterns.active_patterns())
+
+    def annotate_value(self, value):
+        return '[[SF: %s]]' % value.replace(']]', '] ]')
+
+    def strip_annotations(self, text):
+        return re.sub(self.patterns.annotation, '', text)
 
     def escape_entry(self, entry):
         return self.renderer.escape_text(entry)
@@ -73,19 +80,33 @@ class PlaceholderFormatter:
                 context = DiagnosticContext(placeholder="{{value|%s}}" % spec)
                 raise PlaceholderError(msg, context=context, cause=exc)
 
-    def replace_line(self, line, table, tablen, template=None, line_number=None, table_tag=None):
+    def replace_line(
+        self,
+        line,
+        table,
+        tablen,
+        template=None,
+        line_number=None,
+        table_tag=None,
+        annotate=False,
+    ):
         """Replace all placeholders in a template line in source order."""
 
         i = 0
         force_stop = False
         starts = tablen
-        match0 = re.search(self.patterns.any_placeholder, line)
+        position = 0
+        match0 = re.search(self.patterns.any_placeholder, line[position:])
         while match0 and not force_stop:
-            s, e = match0.span()
+            relative_s, relative_e = match0.span()
+            s = position + relative_s
+            e = position + relative_e
             cell = line[s:e]
             matcha = re.search(self.patterns.raw_or_stars, cell)
             matchb = re.search(self.patterns.numeric, cell)
             matchf = re.search(self.patterns.python_format, cell)
+            annotation = re.match(self.patterns.annotation, line[e:])
+            replacement_end = e + (annotation.end() if annotation else 0)
 
             if len(table) > tablen:
                 context = DiagnosticContext(
@@ -101,25 +122,28 @@ class PlaceholderFormatter:
                     if matcha:
                         entry = self.escape_entry(table[tablen])
                         if '*' in matcha.groups():
-                            cell = self.parse_pval_to_stars(cell, entry)
+                            replacement = self.parse_pval_to_stars(cell, entry)
                         else:
-                            cell = re.sub(self.patterns.raw_or_stars, entry, cell, count=1)
+                            replacement = re.sub(self.patterns.raw_or_stars, entry, cell, count=1)
 
-                        line = re.sub(self.patterns.raw_or_stars, cell, line, count=1)
                         tablen += 1
 
                     if matchb:
                         entry = self.escape_entry(table[tablen])
-                        cell = self.round_and_format(cell, entry, context=context)
-                        line = re.sub(self.patterns.numeric, cell, line, count=1)
+                        replacement = self.round_and_format(cell, entry, context=context)
                         tablen += 1
 
                     if matchf:
                         entry = self.escape_entry(table[tablen])
                         fmt = self.format_python_placeholder(cell, entry, context=context)
-                        cell = re.sub(self.patterns.python_format, fmt, cell, count=1)
-                        line = re.sub(self.patterns.python_format, cell, line, count=1)
+                        replacement = re.sub(self.patterns.python_format, fmt, cell, count=1)
                         tablen += 1
+
+                    if annotate:
+                        replacement = cell + self.annotate_value(replacement)
+
+                    line = line[:s] + replacement + line[replacement_end:]
+                    position = s + len(replacement)
                 except PlaceholderError:
                     raise
                 except Exception as exc:
@@ -131,7 +155,7 @@ class PlaceholderFormatter:
 
                 force_stop = True
 
-            match0 = re.search(self.patterns.any_placeholder, line)
+            match0 = re.search(self.patterns.any_placeholder, line[position:])
             i += 1
 
         return line, tablen, starts

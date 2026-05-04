@@ -17,6 +17,7 @@ nav:
         - Inline Values:    usage/07-inline-values.md
         - LaTeX Economics:  usage/08-latex-economics.md
         - Diagnostics and Testing: usage/09-diagnostics-testing.md
+        - Annotation Mode:  usage/10-annotations.md
 
 theme:
     name: 'material'

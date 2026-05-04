@@ -17,10 +17,12 @@
 
 - Split template grammar/scanning, placeholder formatting, rendering, and structured diagnostics into focused modules.
 - Attach file, line, table tag, entry index, placeholder, and source-line context to expected parse and placeholder failures.
+- Add annotation mode with compact `[[SF: ...]]` previews, plus a cleanup mode that removes annotations without filling placeholders.
 
 ### Tests
 
 - Add a long complex LaTeX integration fixture with ragged tables, economics regression outputs, inline values, already-filled tables, comments, and false-positive guards.
+- Cover annotation updates, normal fills from annotated templates, and CLI annotation cleanup without an input file.
 
 ## tablefill-0.11.0 (2026-04-30)
 

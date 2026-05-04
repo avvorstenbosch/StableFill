@@ -64,3 +64,6 @@ Placeholder          | Meaning
 referenced with `{{val:tag}}`, StableFill inserts the first non-missing entry
 from that table. If a `<Value:...>` block and `<Tab:...>` block share a name,
 the explicit value block wins.
+
+To preview inline values without replacing the placeholders, see
+[Annotation Mode](10-annotations.md).

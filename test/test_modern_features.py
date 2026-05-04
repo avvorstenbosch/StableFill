@@ -61,6 +61,207 @@ class TestModernFeatures(unittest.TestCase):
             self.assertIn('Mean age is 42.4.', filled)
             self.assertIn('significant**.', filled)
 
+    def test_annotation_mode_adds_and_updates_table_and_inline_values(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_file = self.write_file(tmpdir, 'values.txt', """
+                <Val:population>
+                5708
+
+                <Tab:summary>
+                5708 A&B 0.024
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Population: {{val:population|,.0f}}[[SF: stale]].
+                \begin{table}
+                \label{tab:summary}
+                \begin{tabular}{lrr}
+                N & #0,#[[SF: stale]] & ### & #*# \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'annotated.tex')
+
+            status, msg = stablefill(input=input_file,
+                                     template=template,
+                                     output=output,
+                                     filetype='tex',
+                                     annotate=True,
+                                     silent=True)
+
+            self.assertEqual('SUCCESS', status, msg)
+            with open(output, 'r') as handle:
+                annotated = handle.read()
+            self.assertIn('{{val:population|,.0f}}[[SF: 5,708]]', annotated)
+            self.assertIn('#0,#[[SF: 5,708]]', annotated)
+            self.assertIn('###[[SF: A\\&B]]', annotated)
+            self.assertIn('#*#[[SF: **]]', annotated)
+            self.assertNotIn('[[SF: stale]]', annotated)
+
+            second_output = os.path.join(tmpdir, 'annotated_again.tex')
+            status, msg = stablefill(input=input_file,
+                                     template=output,
+                                     output=second_output,
+                                     filetype='tex',
+                                     annotate=True,
+                                     silent=True)
+            self.assertEqual('SUCCESS', status, msg)
+            with open(second_output, 'r') as handle:
+                annotated_again = handle.read()
+            self.assertEqual(4, annotated_again.count('[[SF:'))
+
+    def test_normal_fill_consumes_annotations(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_file = self.write_file(tmpdir, 'values.txt', """
+                <Val:population>
+                5708
+
+                <Tab:summary>
+                5708
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Population: {{val:population|,.0f}}[[SF: stale]].
+                \begin{table}
+                \label{tab:summary}
+                \begin{tabular}{lr}
+                N & #0,#[[SF: stale]] \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'filled.tex')
+
+            status, msg = stablefill(input=input_file,
+                                     template=template,
+                                     output=output,
+                                     filetype='tex',
+                                     nohead=True,
+                                     silent=True)
+
+            self.assertEqual('SUCCESS', status, msg)
+            with open(output, 'r') as handle:
+                filled = handle.read()
+            self.assertIn('Population: 5,708.', filled)
+            self.assertIn('N & 5,708', filled)
+            self.assertNotIn('[[SF:', filled)
+
+    def test_remove_annotations_does_not_require_input(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Population: {{val:population|,.0f}}[[SF: 5,708]].
+                \begin{table}
+                \label{tab:already_final}
+                \begin{tabular}{lr}
+                N & #0,#[[SF: 5,708]] \\
+                A & 1.25[[SF: not a placeholder, still removed]] \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'clean.tex')
+
+            status, msg = stablefill(template=template,
+                                     output=output,
+                                     filetype='tex',
+                                     remove_annotations=True,
+                                     silent=True)
+
+            self.assertEqual('SUCCESS', status, msg)
+            with open(output, 'r') as handle:
+                cleaned = handle.read()
+            self.assertIn('{{val:population|,.0f}}.', cleaned)
+            self.assertIn('N & #0,#', cleaned)
+            self.assertIn('A & 1.25', cleaned)
+            self.assertNotIn('[[SF:', cleaned)
+
+    def test_cli_remove_annotations_without_input(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Sample: {{val:sample_size|,.0f}}[[SF: 48,210]].
+                \begin{table}
+                \label{tab:summary}
+                \begin{tabular}{lr}
+                N & #0,#[[SF: 48,210]] \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'clean.tex')
+
+            result = subprocess.run([sys.executable,
+                                     '-m',
+                                     'stablefill',
+                                     '--silent',
+                                     '--remove-annotations',
+                                     '-o',
+                                     output,
+                                     template],
+                                    cwd=ROOT_DIR,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            with open(output, 'r') as handle:
+                cleaned = handle.read()
+            self.assertIn('Sample: {{val:sample_size|,.0f}}.', cleaned)
+            self.assertIn('N & #0,#', cleaned)
+            self.assertNotIn('[[SF:', cleaned)
+
+    def test_cli_annotate_updates_table_and_inline_annotations(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_file = self.write_file(tmpdir, 'values.txt', """
+                <Val:sample_size>
+                48210
+
+                <Tab:summary>
+                48210 0.024
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Sample: {{val:sample_size|,.0f}}[[SF: stale]].
+                \begin{table}
+                \label{tab:summary}
+                \begin{tabular}{lrr}
+                N & #0,#[[SF: stale]] & #*# \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'annotated.tex')
+
+            result = subprocess.run([sys.executable,
+                                     '-m',
+                                     'stablefill',
+                                     '--silent',
+                                     '--annotate',
+                                     '-i',
+                                     input_file,
+                                     '-o',
+                                     output,
+                                     template],
+                                    cwd=ROOT_DIR,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            with open(output, 'r') as handle:
+                annotated = handle.read()
+            self.assertIn('{{val:sample_size|,.0f}}[[SF: 48,210]]', annotated)
+            self.assertIn('#0,#[[SF: 48,210]]', annotated)
+            self.assertIn('#*#[[SF: **]]', annotated)
+            self.assertNotIn('[[SF: stale]]', annotated)
+
     def test_whitespace_regression_rows_with_standard_errors(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             input_file = self.write_file(tmpdir, 'tables.txt', """
