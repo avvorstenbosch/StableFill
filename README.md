@@ -48,7 +48,7 @@ Clone the repository and run the tests with `uv`:
 
 ```bash
 git clone https://github.com/avvorstenbosch/StableFill
-cd tablefill
+cd StableFill
 uv run --extra test python -m pytest -q
 ```
 
@@ -127,6 +127,11 @@ Tables are matched by label. A LaTeX table with `\label{tab:regression}` uses
 the `<Tab:regression>` block from the input file. Placeholders are filled in
 document order: top to bottom, left to right.
 
+For LaTeX, a fillable table is a `\begin{table}` or `\begin{subtable}` region
+with a `\label{tab:name}` inside it. StableFill only fills sequential table
+placeholders inside matched table regions. Tables with no placeholders are left
+unchanged, even if their label has a matching `<Tab:...>` input block.
+
 Common placeholders:
 
 Placeholder      | Meaning
@@ -178,6 +183,21 @@ Uneven table layouts are also supported. A header row can contain two
 placeholders while the body contains four placeholders per row; values are read
 in the order the placeholders appear.
 
+Diagnostics
+-----------
+
+StableFill now reports expected parse and placeholder failures with structured
+context. Error messages include the template or input file, line number, table
+tag, entry index, placeholder text, and nearby source line when those details
+are available. This is especially useful when a numeric placeholder receives
+text, a row appears before any `<Tab:...>` label, or a table has too few input
+values.
+
+The test suite includes a complex LaTeX integration fixture with ragged tables,
+economics outputs, inline values, already-filled tables, comments, ampersands,
+and false-positive guards. When `xelatex` and `pdfinfo` are installed, the test
+also compiles the filled document and checks that the PDF is four or five pages.
+
 Documentation
 -------------
 
@@ -186,6 +206,7 @@ Documentation
 - [Placeholders](https://avvorstenbosch.github.io/StableFill/usage/03placeholders.html)
 - [Inline Values](https://avvorstenbosch.github.io/StableFill/usage/07-inline-values.html)
 - [LaTeX Economics Tables](https://avvorstenbosch.github.io/StableFill/usage/08-latex-economics.html)
+- [Diagnostics and Testing](https://avvorstenbosch.github.io/StableFill/usage/09-diagnostics-testing.html)
 
 Background
 ----------

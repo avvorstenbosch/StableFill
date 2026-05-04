@@ -12,10 +12,11 @@ nav:
     - Home: index.md
     - Getting Started:    getting-started.md
     - Usage:
-        Matrix Input:     usage/02matrix-input.md
-        Placeholders:     usage/03placeholders.md
-        Inline Values:    usage/07-inline-values.md
-        LaTeX Economics:  usage/08-latex-economics.md
+        - Matrix Input:     usage/02matrix-input.md
+        - Placeholders:     usage/03placeholders.md
+        - Inline Values:    usage/07-inline-values.md
+        - LaTeX Economics:  usage/08-latex-economics.md
+        - Diagnostics and Testing: usage/09-diagnostics-testing.md
 
 theme:
     name: 'material'

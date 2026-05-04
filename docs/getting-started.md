@@ -32,7 +32,7 @@ For development:
 
 ```bash
 git clone https://github.com/avvorstenbosch/StableFill
-cd tablefill
+cd StableFill
 uv run --extra test python -m pytest -q
 ```
 
@@ -162,6 +162,11 @@ Within a table, StableFill fills placeholders in document order: top to bottom,
 then left to right within each line. It does not require every table row to have
 the same number of placeholders.
 
+In LaTeX, a fillable table is a `\begin{table}` or `\begin{subtable}` region
+with a `\label{tab:name}` inside it. StableFill only fills sequential table
+placeholders inside matched table regions. A table that already contains final
+values and no placeholders is left unchanged.
+
 Economics Regression Tables
 ---------------------------
 
@@ -246,3 +251,4 @@ More Examples
 - [Placeholders](usage/03placeholders.md)
 - [Inline Values](usage/07-inline-values.md)
 - [LaTeX Economics Tables](usage/08-latex-economics.md)
+- [Diagnostics and Testing](usage/09-diagnostics-testing.md)
