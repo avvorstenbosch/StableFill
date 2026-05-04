@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Features
+
+- Add `--input-dir` / `input_dir` support for reading all `.txt` result files from a directory in sorted order.
+- Automatically use a `tables` directory next to the template when no explicit input file or input directory is provided.
+
 ## StableFill 0.12.0 (2026-05-04)
 
 ### Packaging

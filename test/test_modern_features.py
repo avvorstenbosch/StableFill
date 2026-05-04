@@ -67,6 +67,112 @@ class TestModernFeatures(unittest.TestCase):
             self.assertIn('Mean age is 42.4.', filled)
             self.assertIn('significant**.', filled)
 
+    def test_input_directory_reads_sorted_text_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_dir = os.path.join(tmpdir, 'results')
+            os.makedirs(input_dir)
+            self.write_file(input_dir, '02_table.txt', """
+                <Tab:summary>
+                5708 0.024
+            """)
+            self.write_file(input_dir, '01_values.txt', """
+                <Val:population>
+                5708
+            """)
+            self.write_file(input_dir, 'ignored.md', """
+                <Val:population>
+                9999
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Population: {{val:population|,.0f}}.
+                \begin{table}
+                \label{tab:summary}
+                \begin{tabular}{lrr}
+                N & #0,# & #*# \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'filled.tex')
+
+            status, msg = stablefill(input_dir=input_dir,
+                                     template=template,
+                                     output=output,
+                                     filetype='tex',
+                                     nohead=True,
+                                     silent=True)
+
+            self.assertEqual('SUCCESS', status, msg)
+            with open(output, 'r') as handle:
+                filled = handle.read()
+            self.assertIn('Population: 5,708.', filled)
+            self.assertIn('N & 5,708 & **', filled)
+
+    def test_missing_input_uses_tables_directory_next_to_template(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_dir = os.path.join(tmpdir, 'tables')
+            os.makedirs(input_dir)
+            self.write_file(input_dir, 'values.txt', """
+                <Val:population>
+                5708
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Population: {{val:population|,.0f}}.
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'filled.tex')
+
+            status, msg = stablefill(template=template,
+                                     output=output,
+                                     filetype='tex',
+                                     nohead=True,
+                                     silent=True)
+
+            self.assertEqual('SUCCESS', status, msg)
+            with open(output, 'r') as handle:
+                filled = handle.read()
+            self.assertIn('Population: 5,708.', filled)
+
+    def test_cli_input_directory(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_dir = os.path.join(tmpdir, 'results')
+            os.makedirs(input_dir)
+            self.write_file(input_dir, 'values.txt', """
+                <Val:sample_size>
+                48210
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Sample: {{val:sample_size|,.0f}}.
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'filled.tex')
+
+            result = subprocess.run([sys.executable,
+                                     '-m',
+                                     'stablefill',
+                                     '--silent',
+                                     '--no-header',
+                                     '--input-dir',
+                                     input_dir,
+                                     '-o',
+                                     output,
+                                     template],
+                                    cwd=ROOT_DIR,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            with open(output, 'r') as handle:
+                filled = handle.read()
+            self.assertIn('Sample: 48,210.', filled)
+
     def test_annotation_mode_adds_and_updates_table_and_inline_values(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             input_file = self.write_file(tmpdir, 'values.txt', """

@@ -120,6 +120,36 @@ Fill it:
 stablefill -i results.txt -o paper_filled.tex paper_template.tex
 ```
 
+Input Directories
+-----------------
+
+Instead of maintaining one large input file, you can point StableFill at a
+directory of result files:
+
+```bash
+stablefill --input-dir results/tables -o paper_filled.tex paper_template.tex
+```
+
+StableFill reads all `.txt` files in that directory in sorted filename order.
+Files with other extensions are ignored, and parsing errors still report the
+original file and line number.
+
+If you do not pass `--input` or `--input-dir`, StableFill looks for a `tables`
+directory next to the template:
+
+```text
+paper_template.tex
+tables/
+  01-values.txt
+  02-regressions.txt
+```
+
+With that layout, this is enough:
+
+```bash
+stablefill -o paper_filled.tex paper_template.tex
+```
+
 Inline Values
 -------------
 

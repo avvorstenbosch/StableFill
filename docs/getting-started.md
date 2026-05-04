@@ -98,6 +98,43 @@ Controls  & Yes & No & Yes \\
 N         & 48,210 & 48,210 & 48,210 \\
 ```
 
+Using An Input Directory
+------------------------
+
+StableFill can read a directory of result files instead of one combined input
+file:
+
+```bash
+stablefill --input-dir tables -o paper_filled.tex paper_template.tex
+```
+
+All `.txt` files in the directory are read in sorted filename order. Other
+extensions are ignored. This lets you keep separate outputs from different
+analysis scripts, for example:
+
+```text
+tables/
+  01-summary.txt
+  02-main-regressions.txt
+  03-appendix.txt
+```
+
+If no `--input` or `--input-dir` is provided, StableFill automatically looks
+for a `tables` directory next to the template. With this layout:
+
+```text
+paper_template.tex
+tables/
+  01-summary.txt
+  02-main-regressions.txt
+```
+
+you can run:
+
+```bash
+stablefill -o paper_filled.tex paper_template.tex
+```
+
 Inline Values For Paragraphs
 ----------------------------
 

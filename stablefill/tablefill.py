@@ -103,7 +103,7 @@ Python 3.8 and newer.
 # the future. You should do that also. Seriously (:
 
 from __future__ import division, print_function
-from os import linesep, path, access, W_OK, system, chdir, remove
+from os import linesep, path, access, W_OK, system, chdir, listdir, remove
 from traceback import format_exc
 from operator import itemgetter
 from sys import exit as sysexit
@@ -187,6 +187,7 @@ def main():
 
     exit, exit_msg = stablefill(template       = fill.template,
                                 input          = fill.input,
+                                input_dir      = fill.input_dir,
                                 output         = fill.output,
                                 filetype       = fill.ext,
                                 verbose        = fill.verbose,
@@ -307,6 +308,7 @@ def tablefill(silent         = False,
               use_floats     = False,
               ignore_xml     = False,
               xml_tables     = None,
+              input_dir      = None,
               annotate       = False,
               remove_annotations = False,
               **kwargs):
@@ -326,6 +328,10 @@ def tablefill(silent         = False,
         Name of user-written document to use as basis for update
     input : str
         Space-separated list of files with tables to be used in update.
+    input_dir : str
+        Directory with .txt input files. Files are read in sorted filename
+        order. If neither input nor input_dir is provided, StableFill looks
+        for a "tables" directory next to the template.
     output : str
         Filled template to be produced.
 
@@ -361,6 +367,9 @@ def tablefill(silent         = False,
 
     print_verbose(verbose, "Arguments look OK. Will run StableFill.")
     try:
+        if input_dir is not None:
+            kwargs['input_dir'] = input_dir
+
         verbose = verbose and not silent
         logmsg  = "Parsing arguments..."
         print_verbose(verbose, logmsg)
@@ -462,6 +471,14 @@ class StableFillCLIParser:
                             default  = None,
                             help     = "Input files with tables"
                                        " (default: INPUT_table)",
+                            required = False)
+        parser.add_argument('-d', '--input-dir',
+                            dest     = 'input_dir',
+                            type     = str,
+                            nargs    = 1,
+                            metavar  = 'DIR',
+                            default  = None,
+                            help     = "Directory with .txt input files. If no input is provided, StableFill looks for a tables directory next to TEMPLATE.",
                             required = False)
         parser.add_argument('-o', '--output',
                             dest     = 'output',
@@ -599,14 +616,21 @@ class StableFillCLIParser:
         args = self.parser.parse_args()
         if args.annotate and args.remove_annotations:
             raise ValueError("Use either --annotate or --remove-annotations, not both.")
+        if args.input and args.input_dir:
+            raise ValueError("Use either --input or --input-dir, not both.")
 
         if args.template is None and args.input and len(args.input) > 1:
             args.template = args.input[-1]
             args.input = args.input[:-1]
 
+        if args.template is not None and args.input is None and args.input_dir is None and not args.remove_annotations:
+            default_input_dir = path.join(path.dirname(path.abspath(args.template)), 'tables')
+            if path.isdir(default_input_dir):
+                args.input_dir = [default_input_dir]
+
         missing_args  = []
         missing_args += ['TEMPLATE'] if args.template is None else []
-        missing_args += ['INPUT'] if not args.input and not args.remove_annotations else []
+        missing_args += ['INPUT'] if not args.input and args.input_dir is None and not args.remove_annotations else []
         missing_args += ['OUTPUT'] if args.output is None else []
         if missing_args != []:
             if not args.force or 'TEMPLATE' in missing_args:
@@ -640,6 +664,7 @@ class StableFillCLIParser:
         """
         self.template  = path.abspath(self.args.template)
         self.input     = '' if self.args.input is None else ' '.join([path.abspath(f) for f in self.args.input])
+        self.input_dir = None if self.args.input_dir is None else path.abspath(self.args.input_dir[0])
         self.output    = path.abspath(self.args.output[0])
         self.silent    = self.args.silent
         self.verbose   = self.args.verbose and not self.args.silent
@@ -665,6 +690,7 @@ class StableFillCLIParser:
         args_msg  = linesep + "I found these arguments:"
         args_msg += linesep + "template = %s" % self.template
         args_msg += linesep + "input    = %s" % self.input
+        args_msg += linesep + "input_dir = %s" % self.input_dir
         args_msg += linesep + "output   = %s" % self.output
         args_msg += linesep
         print_verbose(self.verbose, args_msg)
@@ -805,16 +831,29 @@ class StableFillEngine:
             - Output directory exists and is writable
         """
         args = ['template', 'output']
-        if not self.remove_annotations:
+        has_input = 'input' in kwargs and kwargs.get('input')
+        has_input_dir = 'input_dir' in kwargs and kwargs.get('input_dir')
+        if has_input and has_input_dir:
+            raise ValueError("Use either input or input_dir, not both.")
+        if not self.remove_annotations and not has_input and not has_input_dir:
             args += ['input']
 
         # XX
         missing_args = list(filter(lambda arg: arg not in kwargs.keys(), args))
         if missing_args != []:
-            isare = " is " if len(missing_args) == 1 else " are "
-            missing_args_msg  = " and ".join(missing_args)
-            missing_args_msg += isare + "missing. Check function call."
-            raise KeyError(missing_args_msg)
+            template_for_default = kwargs.get('template')
+            default_input_dir = None
+            if not self.remove_annotations and template_for_default is not None:
+                default_input_dir = path.join(path.dirname(path.abspath(template_for_default)), 'tables')
+            if 'input' in missing_args and default_input_dir and path.isdir(default_input_dir):
+                kwargs['input_dir'] = default_input_dir
+                missing_args.remove('input')
+                has_input_dir = True
+            if missing_args != []:
+                isare = " is " if len(missing_args) == 1 else " are "
+                missing_args_msg  = " and ".join(missing_args)
+                missing_args_msg += isare + "missing. Check function call."
+                raise KeyError(missing_args_msg)
 
         # XX
         m = filter(lambda t: not isinstance(t[1], basestring), kwargs.items())
@@ -830,7 +869,10 @@ class StableFillEngine:
         self.output   = path.abspath(kwargs['output'])
         self.input = []
         if not self.remove_annotations:
-            self.input = [path.abspath(ins) for ins in kwargs['input'].split()]
+            if kwargs.get('input_dir'):
+                self.input = self.discover_input_files(kwargs['input_dir'])
+            else:
+                self.input = [path.abspath(ins) for ins in kwargs['input'].split()]
 
         infiles = [self.template] + self.input
         missing_files = list(filter(lambda f: not path.isfile(f), infiles))
@@ -851,6 +893,25 @@ class StableFillEngine:
             cannot_write_msg  = "Please check you have write access to: "
             cannot_write_msg += outdir
             raise IOError(cannot_write_msg)
+
+    def discover_input_files(self, input_dir):
+        """
+        Return .txt input files from a directory in deterministic order.
+        """
+        input_dir = path.abspath(input_dir)
+        if not path.isdir(input_dir):
+            raise IOError("Please check the input directory exists:" + input_dir)
+
+        inputs = []
+        for filename in sorted(listdir(input_dir)):
+            full = path.join(input_dir, filename)
+            if path.isfile(full) and path.splitext(filename)[-1].lower() == '.txt':
+                inputs += [full]
+
+        if inputs == []:
+            raise IOError("No .txt input files found in input directory:" + input_dir)
+
+        return inputs
 
     def get_file_type(self):
         """
