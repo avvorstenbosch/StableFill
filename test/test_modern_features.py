@@ -262,6 +262,40 @@ class TestModernFeatures(unittest.TestCase):
             self.assertIn('#*#[[SF: **]]', annotated)
             self.assertNotIn('[[SF: stale]]', annotated)
 
+    def test_cli_annotate_accepts_template_after_input_argument(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_file = self.write_file(tmpdir, 'values.txt', """
+                <Val:sample_size>
+                48210
+            """)
+            template = self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Sample: {{val:sample_size|,.0f}}.
+                \end{document}
+            """)
+            output = os.path.join(tmpdir, 'annotated.tex')
+
+            result = subprocess.run([sys.executable,
+                                     '-m',
+                                     'stablefill',
+                                     '--silent',
+                                     '--annotate',
+                                     '-i',
+                                     input_file,
+                                     template,
+                                     '-o',
+                                     output],
+                                    cwd=ROOT_DIR,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            with open(output, 'r') as handle:
+                annotated = handle.read()
+            self.assertIn('{{val:sample_size|,.0f}}[[SF: 48,210]]', annotated)
+
     def test_whitespace_regression_rows_with_standard_errors(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             input_file = self.write_file(tmpdir, 'tables.txt', """

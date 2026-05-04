@@ -450,7 +450,7 @@ class StableFillCLIParser:
                             version  = parser_version,
                             help     = "Show current version")
         parser.add_argument('template',
-                            nargs    = 1,
+                            nargs    = '?',
                             type     = str,
                             metavar  = 'TEMPLATE',
                             help     = "Code template")
@@ -599,17 +599,23 @@ class StableFillCLIParser:
         args = self.parser.parse_args()
         if args.annotate and args.remove_annotations:
             raise ValueError("Use either --annotate or --remove-annotations, not both.")
+
+        if args.template is None and args.input and len(args.input) > 1:
+            args.template = args.input[-1]
+            args.input = args.input[:-1]
+
         missing_args  = []
-        missing_args += ['INPUT'] if args.input is None and not args.remove_annotations else []
+        missing_args += ['TEMPLATE'] if args.template is None else []
+        missing_args += ['INPUT'] if not args.input and not args.remove_annotations else []
         missing_args += ['OUTPUT'] if args.output is None else []
         if missing_args != []:
-            if not args.force:
+            if not args.force or 'TEMPLATE' in missing_args:
                 isare = ' is ' if len(missing_args) == 1 else ' are '
                 missing_args_msg   = ' and '.join(missing_args)
                 missing_args_msg  += isare + 'missing without --force option.'
                 raise KeyError(missing_args_msg)
             else:
-                template_name = path.basename(args.template[0])
+                template_name = path.basename(args.template)
                 if 'INPUT' in missing_args:
                     args.input = self.rename_file(template_name,
                                                   '_table', 'txt')
@@ -632,7 +638,7 @@ class StableFillCLIParser:
         """
         Get arguments as strings to pass to StableFill.
         """
-        self.template  = path.abspath(self.args.template[0])
+        self.template  = path.abspath(self.args.template)
         self.input     = '' if self.args.input is None else ' '.join([path.abspath(f) for f in self.args.input])
         self.output    = path.abspath(self.args.output[0])
         self.silent    = self.args.silent

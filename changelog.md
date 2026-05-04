@@ -12,6 +12,7 @@
 - Preserve the character before unescaped `&` and `%` when escaping LaTeX replacement text.
 - Escape percent signs produced by inline Python format strings such as `{{rate|.1%}}`.
 - Avoid missing-input warnings for already-filled tables that have `tab:` labels but no StableFill placeholders.
+- Recover the common CLI order `stablefill -i results.txt template.tex -o filled.tex`, which previously let `--input` swallow the template argument.
 
 ### Improvements
 

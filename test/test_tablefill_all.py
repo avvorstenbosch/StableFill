@@ -421,19 +421,12 @@ class testTableFillCLI(unittest.TestCase):
         texfilled_data_args1 = open(self.texoutput, 'r').readlines()
         lyxfilled_data_args1 = open(self.lyxoutput, 'r').readlines()
 
-        # Since input takes multiple inputs, this actually fails
+        # The parser recovers the common order where the template follows
+        # the input files.
         lyxinout = (program, self.lyxoutput, self.input_appendix, self.lyxtemplate)
         lyxinout_status = tfcall('%s --output %s --input %s %s' % lyxinout)
         texinout = (program, self.texoutput, self.input_appendix, self.textemplate)
         texinout_status = tfcall('%s --output %s --input %s %s' % texinout)
-        self.assertEqual(2, lyxinout_status)
-        self.assertEqual(2, texinout_status)
-
-        # But this is also OK
-        lyxinout = (program, self.lyxoutput, self.input_appendix, self.lyxtemplate)
-        lyxinout_status = tfcall('%s --output %s --input %s --type lyx %s' % lyxinout)
-        texinout = (program, self.texoutput, self.input_appendix, self.textemplate)
-        texinout_status = tfcall('%s --output %s --input %s --type tex %s' % texinout)
         self.assertEqual(0, lyxinout_status)
         self.assertEqual(0, texinout_status)
 
@@ -442,6 +435,20 @@ class testTableFillCLI(unittest.TestCase):
 
         self.assertEqual(texfilled_data_args1, texfilled_data_args2)
         self.assertEqual(lyxfilled_data_args1, lyxfilled_data_args2)
+
+        # Explicit file types continue to work with that order.
+        lyxinout = (program, self.lyxoutput, self.input_appendix, self.lyxtemplate)
+        lyxinout_status = tfcall('%s --output %s --input %s --type lyx %s' % lyxinout)
+        texinout = (program, self.texoutput, self.input_appendix, self.textemplate)
+        texinout_status = tfcall('%s --output %s --input %s --type tex %s' % texinout)
+        self.assertEqual(0, lyxinout_status)
+        self.assertEqual(0, texinout_status)
+
+        texfilled_data_args3 = open(self.texoutput, 'r').readlines()
+        lyxfilled_data_args3 = open(self.lyxoutput, 'r').readlines()
+
+        self.assertEqual(texfilled_data_args1, texfilled_data_args3)
+        self.assertEqual(lyxfilled_data_args1, lyxfilled_data_args3)
 
     # ------------------------------------------------------------------
     # The following test uses three files that are WRONG but the
