@@ -135,6 +135,37 @@ you can run:
 stablefill -o paper_filled.tex paper_template.tex
 ```
 
+Using `stablefill.toml`
+-----------------------
+
+If you run the same fill command repeatedly, put the settings in a
+`stablefill.toml` file:
+
+```toml
+template = "paper_template.tex"
+output = "paper_filled.tex"
+input_dir = "tables"
+no_header = true
+
+[formatting]
+pvals = [0.1, 0.05, 0.01]
+stars = ["*", "**", "***"]
+```
+
+Then run:
+
+```bash
+stablefill
+```
+
+Command-line arguments override config values. For example, this keeps the
+template and input directory from `stablefill.toml` but writes an annotated
+review copy:
+
+```bash
+stablefill --annotate -o paper_annotated.tex
+```
+
 Inline Values For Paragraphs
 ----------------------------
 

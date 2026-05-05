@@ -5,10 +5,12 @@ import sys
 import tempfile
 import textwrap
 import unittest
+import warnings
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from stablefill import stablefill
+from stablefill.tablefill import StableFillEngine
 from stablefill.placeholders import PlaceholderPatterns as StablePlaceholderPatterns
 from stablefill.template_scanner import TemplateScanner as StableTemplateScanner
 from tablefill import tablefill
@@ -172,6 +174,109 @@ class TestModernFeatures(unittest.TestCase):
             with open(output, 'r') as handle:
                 filled = handle.read()
             self.assertIn('Sample: 48,210.', filled)
+
+    def test_cli_uses_stablefill_toml_when_no_arguments_are_given(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_dir = os.path.join(tmpdir, 'tables')
+            os.makedirs(input_dir)
+            self.write_file(input_dir, 'values.txt', """
+                <Val:sample_size>
+                48210
+            """)
+            self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Sample: {{val:sample_size|,.0f}}.
+                \end{document}
+            """)
+            self.write_file(tmpdir, 'stablefill.toml', """
+                template = "template.tex"
+                output = "filled.tex"
+                input_dir = "tables"
+                no_header = true
+                silent = true
+            """)
+
+            env = os.environ.copy()
+            env['PYTHONPATH'] = ROOT_DIR + os.pathsep + env.get('PYTHONPATH', '')
+            result = subprocess.run([sys.executable, '-m', 'stablefill'],
+                                    cwd=tmpdir,
+                                    env=env,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            with open(os.path.join(tmpdir, 'filled.tex'), 'r') as handle:
+                filled = handle.read()
+            self.assertIn('Sample: 48,210.', filled)
+
+    def test_cli_arguments_override_stablefill_toml(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_dir = os.path.join(tmpdir, 'tables')
+            os.makedirs(input_dir)
+            override_dir = os.path.join(tmpdir, 'override_tables')
+            os.makedirs(override_dir)
+            self.write_file(input_dir, 'values.txt', """
+                <Val:sample_size>
+                111
+            """)
+            self.write_file(override_dir, 'values.txt', """
+                <Val:sample_size>
+                48210
+            """)
+            self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                Sample: {{val:sample_size|,.0f}}.
+                \end{document}
+            """)
+            self.write_file(tmpdir, 'stablefill.toml', """
+                template = "template.tex"
+                output = "filled_from_config.tex"
+                input_dir = "tables"
+                no_header = true
+                silent = true
+            """)
+
+            env = os.environ.copy()
+            env['PYTHONPATH'] = ROOT_DIR + os.pathsep + env.get('PYTHONPATH', '')
+            output = os.path.join(tmpdir, 'filled_from_cli.tex')
+            result = subprocess.run([sys.executable,
+                                     '-m',
+                                     'stablefill',
+                                     '--input-dir',
+                                     override_dir,
+                                     '-o',
+                                     output],
+                                    cwd=tmpdir,
+                                    env=env,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            with open(output, 'r') as handle:
+                filled = handle.read()
+            self.assertIn('Sample: 48,210.', filled)
+            self.assertFalse(os.path.exists(os.path.join(tmpdir, 'filled_from_config.tex')))
+
+    def test_custom_xml_python_emits_deprecation_warning(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            xml_file = self.write_file(tmpdir, 'custom.xml', """
+                <tablefill-python tag="derived">
+                    base[0][0], base[0][1]
+                </tablefill-python>
+            """)
+            engine = StableFillEngine(filetype='tex', silent=True, ignore_xml=False)
+
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter('always')
+                tables = {'base': [['1', '2']]}
+                engine.parse_xml_file(tables, xml_file)
+
+            self.assertIn('derived', tables)
+            self.assertTrue(any(item.category is FutureWarning for item in caught))
 
     def test_annotation_mode_adds_and_updates_table_and_inline_values(self):
         with tempfile.TemporaryDirectory() as tmpdir:

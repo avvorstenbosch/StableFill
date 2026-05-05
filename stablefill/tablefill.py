@@ -114,8 +114,10 @@ import xml.etree.ElementTree as xml
 import argparse
 import sys
 import re
+import warnings
 
 try:
+    from .config import CONFIG_BASENAME, as_list, flatten_config, load_config_file
     from .errors import DiagnosticContext, PlaceholderError
     from .inline import replace_inline_placeholders, strip_annotations
     from .parsers import parse_input_files
@@ -123,6 +125,7 @@ try:
     from .renderers import renderer_for_filetype
     from .template_scanner import TemplateScanner, grammar_for_filetype
 except ImportError:
+    from config import CONFIG_BASENAME, as_list, flatten_config, load_config_file
     from errors import DiagnosticContext, PlaceholderError
     from inline import replace_inline_placeholders, strip_annotations
     from parsers import parse_input_files
@@ -152,8 +155,8 @@ __usage__     = """[-h] [-v] [FLAGS] [-i [INPUT [INPUT ...]]] [-o OUTPUT]
 __purpose__   = "Fill tagged tables and inline values in LaTeX, LyX, and Markdown files"
 __author__    = "Mauricio Caceres <caceres@nber.org>"
 __created__   = "Thu Jun 18, 2015"
-__updated__   = "Mon May 04, 2026"
-__version__   = "StableFill version 0.12.0 updated " + __updated__
+__updated__   = "Tue May 05, 2026"
+__version__   = "StableFill version 0.13.0 updated " + __updated__
 
 # Define basestring in a backwards-compatible way
 try:
@@ -458,6 +461,14 @@ class StableFillCLIParser:
                             action   = 'version',
                             version  = parser_version,
                             help     = "Show current version")
+        parser.add_argument('--config',
+                            dest     = 'config',
+                            type     = str,
+                            nargs    = 1,
+                            metavar  = 'CONFIG',
+                            default  = None,
+                            help     = "TOML configuration file (default: stablefill.toml when present)",
+                            required = False)
         parser.add_argument('template',
                             nargs    = '?',
                             type     = str,
@@ -581,7 +592,7 @@ class StableFillCLIParser:
                             nargs    = '*',
                             metavar  = 'INPUT',
                             default  = None,
-                            help     = "Files with custom XML combinations.",
+                            help     = "Files with custom XML combinations (deprecated).",
                             required = False),
         parser.add_argument('--log-file',
                             dest     = 'log_file',
@@ -614,6 +625,12 @@ class StableFillCLIParser:
         (only guess with the --force option, otherwise don't run).
         """
         args = self.parser.parse_args()
+        config_path = args.config[0] if args.config else CONFIG_BASENAME
+        if args.config and not path.isfile(config_path):
+            raise IOError("Please check the config file exists:" + config_path)
+        config = flatten_config(load_config_file(config_path))
+        self.apply_config_defaults(args, config)
+
         if args.annotate and args.remove_annotations:
             raise ValueError("Use either --annotate or --remove-annotations, not both.")
         if args.input and args.input_dir:
@@ -652,6 +669,54 @@ class StableFillCLIParser:
                     args.output = self.rename_file(template_name, suffix)
 
         self.args = args
+
+    def cli_option_present(self, *options):
+        return any(option in sys.argv[1:] for option in options)
+
+    def apply_config_defaults(self, args, config):
+        if not config:
+            return
+
+        if args.template is None and config.get('template') is not None:
+            args.template = str(config['template'])
+        if args.input is None and config.get('input') is not None:
+            args.input = [str(value) for value in as_list(config['input'])]
+        if args.input_dir is None and config.get('input_dir') is not None:
+            args.input_dir = [str(config['input_dir'])]
+        if args.output is None and config.get('output') is not None:
+            args.output = [str(config['output'])]
+        if not self.cli_option_present('-t', '--type') and config.get('filetype') is not None:
+            args.filetype = [str(config['filetype'])]
+        if not self.cli_option_present('--pvals') and config.get('pvals') is not None:
+            args.pvals = [str(value) for value in as_list(config['pvals'])]
+        if not self.cli_option_present('--stars') and config.get('stars') is not None:
+            args.stars = [str(value) for value in as_list(config['stars'])]
+        if not self.cli_option_present('--na-filters') and config.get('nafilters') is not None:
+            args.nafilters = [str(value) for value in as_list(config['nafilters'])]
+
+        for attr, option in [
+            ('force', '--force'),
+            ('compile', '--compile'),
+            ('bibtex', '--bibtex'),
+            ('fill_comments', '--fill-comments'),
+            ('annotate', '--annotate'),
+            ('remove_annotations', '--remove-annotations'),
+            ('no_header', '--no-header'),
+            ('ignore_xml', '--ignore-xml'),
+            ('legacy_parsing', '--legacy-parsing'),
+            ('numpy_syntax', '--numpy-syntax'),
+            ('use_floats', '--use-floats'),
+            ('log_only', '--log-only'),
+            ('verbose', '--verbose'),
+            ('silent', '--silent'),
+        ]:
+            if not self.cli_option_present(option) and config.get(attr) is not None:
+                setattr(args, attr, bool(config[attr]))
+
+        if args.xml_tables is None and config.get('xml_tables') is not None:
+            args.xml_tables = [str(value) for value in as_list(config['xml_tables'])]
+        if args.log_file is None and config.get('log_file') is not None:
+            args.log_file = [str(config['log_file'])]
 
     def rename_file(self, base, add, ext = None):
         out  = path.splitext(base)
@@ -822,6 +887,19 @@ class StableFillEngine:
         self.use_floats     = use_floats
         self.ignore_xml     = ignore_xml
         self.xml_tables     = xml_tables
+        self._warned_deprecated_xml = False
+
+    def warn_deprecated_xml(self):
+        if self._warned_deprecated_xml:
+            return
+        self._warned_deprecated_xml = True
+        warnings.warn(
+            "Custom XML/Python table generation is deprecated and will be removed "
+            "in a future StableFill release. Prefer explicit input tables and "
+            "future derived-value configuration support.",
+            FutureWarning,
+            stacklevel=3,
+        )
 
     def get_parsed_arguments(self, kwargs):
         """
@@ -1070,6 +1148,8 @@ class StableFillEngine:
         if cdict == {}:
             return
 
+        self.warn_deprecated_xml()
+
         # Get temporary string and numeric dictionaries
         strdict = ctables
         numdict = {}
@@ -1227,6 +1307,9 @@ class StableFillEngine:
             edict[t] = e
 
         # Create all the custom tables using python/numpy slicing
+        if cdict != {}:
+            self.warn_deprecated_xml()
+
         for tag, cxml in cdict.items():
             print_verbose(self.verbose, "\tcreating custom tab:%s" % (tag))
 

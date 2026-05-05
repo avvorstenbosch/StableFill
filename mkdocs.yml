@@ -18,6 +18,8 @@ nav:
         - LaTeX Economics:  usage/08-latex-economics.md
         - Diagnostics and Testing: usage/09-diagnostics-testing.md
         - Annotation Mode:  usage/10-annotations.md
+        - Configuration Files: usage/11-configuration.md
+        - Legacy XML/Python: usage/12-legacy-xml.md
 
 theme:
     name: 'material'

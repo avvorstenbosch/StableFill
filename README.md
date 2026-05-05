@@ -150,6 +150,32 @@ With that layout, this is enough:
 stablefill -o paper_filled.tex paper_template.tex
 ```
 
+Configuration File
+------------------
+
+For repeated builds, create `stablefill.toml` in the directory where you run
+StableFill:
+
+```toml
+template = "paper_template.tex"
+output = "paper_filled.tex"
+input_dir = "tables"
+no_header = true
+```
+
+Then run:
+
+```bash
+stablefill
+```
+
+Command-line options override values from the config file, so this uses the
+same template and input directory but writes an annotated copy:
+
+```bash
+stablefill --annotate -o paper_annotated.tex
+```
+
 Inline Values
 -------------
 
@@ -280,6 +306,15 @@ economics outputs, inline values, already-filled tables, comments, ampersands,
 and false-positive guards. When `xelatex` and `pdfinfo` are installed, the test
 also compiles the filled document and checks that the PDF is four or five pages.
 
+Legacy XML/Python Tables
+------------------------
+
+The historical custom XML/Python table feature is deprecated. Existing
+`<tablefill-python>` and legacy `<tablefill-custom>` blocks still run for now,
+but StableFill emits a deprecation warning when they are used. Prefer explicit
+input tables, inline values, and `stablefill.toml` configuration for new
+projects.
+
 Documentation
 -------------
 
@@ -290,6 +325,8 @@ Documentation
 - [LaTeX Economics Tables](https://avvorstenbosch.github.io/StableFill/usage/08-latex-economics.html)
 - [Diagnostics and Testing](https://avvorstenbosch.github.io/StableFill/usage/09-diagnostics-testing.html)
 - [Annotation Mode](https://avvorstenbosch.github.io/StableFill/usage/10-annotations.html)
+- [Configuration Files](https://avvorstenbosch.github.io/StableFill/usage/11-configuration.html)
+- [Legacy XML/Python Tables](https://avvorstenbosch.github.io/StableFill/usage/12-legacy-xml.html)
 
 Background
 ----------

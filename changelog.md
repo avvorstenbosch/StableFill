@@ -6,6 +6,11 @@
 
 - Add `--input-dir` / `input_dir` support for reading all `.txt` result files from a directory in sorted order.
 - Automatically use a `tables` directory next to the template when no explicit input file or input directory is provided.
+- Add `stablefill.toml` support for running the CLI with saved template, input, output, and formatting settings.
+
+### Deprecations
+
+- Deprecate custom XML/Python table generation. Existing XML blocks still run, but now emit a `FutureWarning`.
 
 ## StableFill 0.12.0 (2026-05-04)
 
