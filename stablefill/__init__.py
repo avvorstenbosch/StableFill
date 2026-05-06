@@ -6,7 +6,7 @@ package remains available as a compatibility alias.
 
 __author__ = "Mauricio Caceres Bravo"
 __email__ = "mauricio.caceres.bravo@gmail.com"
-__version__ = "0.13.0"
+__version__ = "0.14.0"
 
 from .errors import (
     DiagnosticContext,

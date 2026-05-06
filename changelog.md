@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No unreleased changes yet.
+
+## StableFill 0.14.0 (2026-05-06)
+
 ### Features
 
 - Add `--input-dir` / `input_dir` support for reading all `.txt` result files from a directory in sorted order.
@@ -13,6 +17,10 @@
 ### Deprecations
 
 - Deprecate custom XML/Python table generation. Existing XML blocks still run, but now emit a `FutureWarning`.
+
+### Documentation
+
+- Document input directories, automatic `tables/` discovery, `stablefill.toml`, `stablefill inspect`, and `stablefill init` in the README and documentation site.
 
 ## StableFill 0.12.0 (2026-05-04)
 

@@ -155,8 +155,8 @@ __usage__     = """[-h] [-v] [FLAGS] [-i [INPUT [INPUT ...]]] [-o OUTPUT]
 __purpose__   = "Fill tagged tables and inline values in LaTeX, LyX, and Markdown files"
 __author__    = "Mauricio Caceres <caceres@nber.org>"
 __created__   = "Thu Jun 18, 2015"
-__updated__   = "Tue May 05, 2026"
-__version__   = "StableFill version 0.13.0 updated " + __updated__
+__updated__   = "Wed May 06, 2026"
+__version__   = "StableFill version 0.14.0 updated " + __updated__
 
 # Define basestring in a backwards-compatible way
 try:
