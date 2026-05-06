@@ -35,6 +35,20 @@ Run StableFill:
 stablefill -i results.txt -o paper_filled.tex paper_template.tex
 ```
 
+Start a new project layout:
+
+```bash
+stablefill init
+```
+
+This creates a `tables/` directory and a minimal `stablefill.toml` file. After
+adding your template and result files, inspect the planned replacements before
+writing output:
+
+```bash
+stablefill inspect
+```
+
 The historical command name is still available:
 
 ```bash
@@ -169,12 +183,38 @@ Then run:
 stablefill
 ```
 
+Inspect the same configured project without writing an output file:
+
+```bash
+stablefill inspect
+```
+
 Command-line options override values from the config file, so this uses the
 same template and input directory but writes an annotated copy:
 
 ```bash
 stablefill --annotate -o paper_annotated.tex
 ```
+
+Project Initialization And Inspection
+-------------------------------------
+
+`stablefill init` creates the simple layout expected by the default workflow:
+
+```text
+stablefill.toml
+tables/
+```
+
+It does not create or modify your manuscript template. By default, the config
+points to `paper_template.tex`, writes `paper_filled.tex`, and reads `.txt`
+files from `tables/`.
+
+`stablefill inspect` is a dry run. It reads the template and input files, then
+prints what StableFill thinks it will do: detected input files, table blocks,
+named values, template tables with placeholder counts, missing inline values,
+ignored already-filled tables, and unused input blocks. It does not create an
+output file.
 
 Inline Values
 -------------
@@ -327,6 +367,7 @@ Documentation
 - [Annotation Mode](https://avvorstenbosch.github.io/StableFill/usage/10-annotations.html)
 - [Configuration Files](https://avvorstenbosch.github.io/StableFill/usage/11-configuration.html)
 - [Legacy XML/Python Tables](https://avvorstenbosch.github.io/StableFill/usage/12-legacy-xml.html)
+- [Inspect and Init](https://avvorstenbosch.github.io/StableFill/usage/13-inspect-init.html)
 
 Background
 ----------

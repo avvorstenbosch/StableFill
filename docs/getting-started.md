@@ -40,6 +40,26 @@ uv run --extra test python -m pytest -q
 uv run --extra docs mkdocs build --strict
 ```
 
+Initialize A Project
+--------------------
+
+For a new paper, create the small default layout:
+
+```bash
+stablefill init
+```
+
+This creates:
+
+```text
+stablefill.toml
+tables/
+```
+
+The config points to `paper_template.tex`, writes `paper_filled.tex`, and reads
+all `.txt` files from `tables/`. StableFill does not create a manuscript
+template because most users already have their own TeX, LyX, or Markdown file.
+
 The Basic Workflow
 ------------------
 
@@ -157,6 +177,16 @@ Then run:
 ```bash
 stablefill
 ```
+
+Before writing a filled file, inspect what StableFill sees:
+
+```bash
+stablefill inspect
+```
+
+The inspect command prints the input files, table blocks, named values,
+template tables, placeholder counts, missing inputs, ignored already-filled
+tables, and unused input blocks. It does not create an output file.
 
 Command-line arguments override config values. For example, this keeps the
 template and input directory from `stablefill.toml` but writes an annotated
@@ -364,3 +394,4 @@ More Examples
 - [LaTeX Economics Tables](usage/08-latex-economics.md)
 - [Diagnostics and Testing](usage/09-diagnostics-testing.md)
 - [Annotation Mode](usage/10-annotations.md)
+- [Inspect and Init](usage/13-inspect-init.md)

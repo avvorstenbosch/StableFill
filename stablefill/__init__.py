@@ -16,6 +16,7 @@ from .errors import (
     TemplateScanError,
 )
 from .tablefill import (
+    inspect_stablefill,
     main,
     stablefill,
     tablefill,
@@ -27,6 +28,7 @@ __all__ = [
     'PlaceholderError',
     'TableFillError',
     'TemplateScanError',
+    'inspect_stablefill',
     'main',
     'stablefill',
     'tablefill',

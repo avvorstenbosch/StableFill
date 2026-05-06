@@ -211,6 +211,104 @@ class TestModernFeatures(unittest.TestCase):
                 filled = handle.read()
             self.assertIn('Sample: 48,210.', filled)
 
+    def test_cli_init_creates_minimal_project_layout(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = os.path.join(tmpdir, 'paper')
+            env = os.environ.copy()
+            env['PYTHONPATH'] = ROOT_DIR + os.pathsep + env.get('PYTHONPATH', '')
+
+            result = subprocess.run([sys.executable,
+                                     '-m',
+                                     'stablefill',
+                                     'init',
+                                     project],
+                                    cwd=tmpdir,
+                                    env=env,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertTrue(os.path.isdir(os.path.join(project, 'tables')))
+            config = os.path.join(project, 'stablefill.toml')
+            self.assertTrue(os.path.isfile(config))
+            with open(config, 'r') as handle:
+                contents = handle.read()
+            self.assertIn('template = "paper_template.tex"', contents)
+            self.assertIn('output = "paper_filled.tex"', contents)
+            self.assertIn('input_dir = "tables"', contents)
+
+    def test_cli_inspect_reports_planned_fills_and_ignored_tables(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_dir = os.path.join(tmpdir, 'tables')
+            os.makedirs(input_dir)
+            self.write_file(input_dir, '01-values.txt', """
+                <Val:sample_size>
+                48210
+
+                <Val:unused_value>
+                7
+            """)
+            self.write_file(input_dir, '02-tables.txt', """
+                <Tab:regression>
+                0.125*** (0.031) -0.456 (0.100)
+                Yes No
+                48210 48210
+
+                <Tab:unused_table>
+                1 2 3
+            """)
+            self.write_file(tmpdir, 'template.tex', r"""
+                \documentclass{article}
+                \begin{document}
+                The sample includes {{val:sample_size|,.0f}} observations.
+                Missing inline value: {{val:not_available}}.
+
+                \begin{table}
+                \caption{Regression output}
+                \label{tab:regression}
+                \begin{tabular}{lcc}
+                Treatment & ### & ### \\
+                Controls  & ### & ### \\
+                N         & #0,# & #0,# \\
+                \end{tabular}
+                \end{table}
+
+                \begin{table}
+                \caption{Already filled}
+                \label{tab:already_final}
+                \begin{tabular}{lr}
+                Group & Estimate \\
+                A & 1.25 \\
+                \end{tabular}
+                \end{table}
+                \end{document}
+            """)
+            self.write_file(tmpdir, 'stablefill.toml', """
+                template = "template.tex"
+                input_dir = "tables"
+                no_header = true
+            """)
+
+            env = os.environ.copy()
+            env['PYTHONPATH'] = ROOT_DIR + os.pathsep + env.get('PYTHONPATH', '')
+            result = subprocess.run([sys.executable, '-m', 'stablefill', 'inspect'],
+                                    cwd=tmpdir,
+                                    env=env,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True)
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertIn('StableFill inspect', result.stdout)
+            self.assertIn('tab:regression: OK, 6 placeholders and 6 input values', result.stdout)
+            self.assertIn('tab:already_final: ignored, no StableFill table placeholders', result.stdout)
+            self.assertIn('{{val:sample_size}} -> OK (48,210)', result.stdout)
+            self.assertIn('{{val:not_available}} -> MISSING INPUT', result.stdout)
+            self.assertIn('tables: tab:unused_table', result.stdout)
+            self.assertIn('values: val:unused_value', result.stdout)
+            self.assertFalse(os.path.exists(os.path.join(tmpdir, 'paper_filled.tex')))
+
     def test_cli_arguments_override_stablefill_toml(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             input_dir = os.path.join(tmpdir, 'tables')

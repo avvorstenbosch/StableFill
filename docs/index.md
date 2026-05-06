@@ -8,5 +8,7 @@ files. Start with the [Getting Started](getting-started.md) guide, then see
 workflows. Use [Annotation Mode](usage/10-annotations.md) when you want to
 preview values next to placeholders while drafting, and
 [Configuration Files](usage/11-configuration.md) for repeated builds. For
-troubleshooting and the large regression fixture, see
-[Diagnostics and Testing](usage/09-diagnostics-testing.md).
+troubleshooting, use `stablefill inspect` as described in
+[Inspect and Init](usage/13-inspect-init.md), and see
+[Diagnostics and Testing](usage/09-diagnostics-testing.md) for the large
+regression fixture.

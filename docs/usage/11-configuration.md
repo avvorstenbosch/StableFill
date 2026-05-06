@@ -23,6 +23,21 @@ Then run:
 stablefill
 ```
 
+To create this starter layout automatically, run:
+
+```bash
+stablefill init
+```
+
+This creates a `tables/` directory and a minimal `stablefill.toml`. It leaves
+your template file to you.
+
+To check what the configured project would do without writing output, run:
+
+```bash
+stablefill inspect
+```
+
 Command-line options override config values:
 
 ```bash

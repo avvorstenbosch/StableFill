@@ -103,7 +103,7 @@ Python 3.8 and newer.
 # the future. You should do that also. Seriously (:
 
 from __future__ import division, print_function
-from os import linesep, path, access, W_OK, system, chdir, listdir, remove
+from os import linesep, path, access, W_OK, system, chdir, listdir, remove, makedirs
 from traceback import format_exc
 from operator import itemgetter
 from sys import exit as sysexit
@@ -119,16 +119,16 @@ import warnings
 try:
     from .config import CONFIG_BASENAME, as_list, flatten_config, load_config_file
     from .errors import DiagnosticContext, PlaceholderError
-    from .inline import replace_inline_placeholders, strip_annotations
-    from .parsers import parse_input_files
+    from .inline import INLINE_RE, replace_inline_placeholders, strip_annotations
+    from .parsers import normalize_key, parse_input_files
     from .placeholders import PlaceholderFormatter, PlaceholderPatterns
     from .renderers import renderer_for_filetype
     from .template_scanner import TemplateScanner, grammar_for_filetype
 except ImportError:
     from config import CONFIG_BASENAME, as_list, flatten_config, load_config_file
     from errors import DiagnosticContext, PlaceholderError
-    from inline import replace_inline_placeholders, strip_annotations
-    from parsers import parse_input_files
+    from inline import INLINE_RE, replace_inline_placeholders, strip_annotations
+    from parsers import normalize_key, parse_input_files
     from placeholders import PlaceholderFormatter, PlaceholderPatterns
     from renderers import renderer_for_filetype
     from template_scanner import TemplateScanner, grammar_for_filetype
@@ -181,6 +181,11 @@ def main():
     """
     WARNING: This function expects command-line inputs to exist.
     """
+
+    if len(sys.argv) > 1 and sys.argv[1] == 'inspect':
+        sysexit(run_inspect_command(sys.argv[2:]))
+    if len(sys.argv) > 1 and sys.argv[1] == 'init':
+        sysexit(run_init_command(sys.argv[2:]))
 
     fill = StableFillCLIParser()
     fill.get_input_parser()
@@ -435,11 +440,144 @@ stablefill = tablefill
 # StableFill CLI parsing internals
 
 
+def inspect_stablefill(silent         = False,
+                       verbose        = False,
+                       filetype       = 'auto',
+                       pvals          = [0.1, 0.05, 0.01],
+                       stars          = ['*', '**', '***'],
+                       nafilters      = ['.', '', 'NA', 'nan', 'NaN', 'NaN+0i', 'None', 'Inf', 'INF'],
+                       fillc          = False,
+                       legacy_parsing = False,
+                       numpy_syntax   = False,
+                       use_floats     = False,
+                       ignore_xml     = False,
+                       xml_tables     = None,
+                       input_dir      = None,
+                       output         = None,
+                       **kwargs):
+    """Return a human-readable dry-run report without writing output."""
+    try:
+        if input_dir is not None:
+            kwargs['input_dir'] = input_dir
+        if output is not None:
+            kwargs['output'] = output
+
+        engine = StableFillEngine(filetype,
+                                  verbose,
+                                  silent,
+                                  pvals,
+                                  stars,
+                                  nafilters,
+                                  fillc,
+                                  True,
+                                  legacy_parsing,
+                                  numpy_syntax,
+                                  use_floats,
+                                  ignore_xml,
+                                  xml_tables)
+        engine.get_parsed_arguments(kwargs, require_output=False)
+        engine.get_file_type()
+        engine.get_regexps()
+        engine.get_parsed_tables()
+        report = engine.get_inspection_report()
+        print_silent(silent, report)
+        return 'SUCCESS', report
+    except:
+        exit_msg = format_exc()
+        print_silent(silent, 'ERROR!')
+        print_silent(silent, exit_msg)
+        return 'ERROR', exit_msg
+
+
+def run_inspect_command(argv=None):
+    fill = StableFillCLIParser(command='inspect', argv=argv)
+    fill.get_input_parser()
+    fill.get_parsed_arguments()
+    fill.get_argument_strings()
+    fill.get_file_type()
+
+    status, _ = inspect_stablefill(template       = fill.template,
+                                   input          = fill.input,
+                                   input_dir      = fill.input_dir,
+                                   output         = fill.output,
+                                   filetype       = fill.ext,
+                                   verbose        = fill.verbose,
+                                   silent         = fill.silent,
+                                   pvals          = fill.pvals,
+                                   stars          = fill.stars,
+                                   nafilters      = fill.nafilters,
+                                   fillc          = fill.fillc,
+                                   legacy_parsing = fill.legacy_parsing,
+                                   numpy_syntax   = fill.numpy_syntax,
+                                   use_floats     = fill.use_floats,
+                                   ignore_xml     = fill.ignore_xml,
+                                   xml_tables     = fill.xml_tables)
+    return 0 if status == 'SUCCESS' else 1
+
+
+def run_init_command(argv=None):
+    parser = argparse.ArgumentParser(
+        prog=__program__ + ' init',
+        description='Create a minimal StableFill project layout.',
+    )
+    parser.add_argument('directory',
+                        nargs='?',
+                        default='.',
+                        help='Project directory to initialize (default: current directory).')
+    parser.add_argument('--tables-dir',
+                        default='tables',
+                        help='Directory for .txt result files (default: tables).')
+    parser.add_argument('--template',
+                        default='paper_template.tex',
+                        help='Template path to write into stablefill.toml.')
+    parser.add_argument('--output',
+                        default='paper_filled.tex',
+                        help='Output path to write into stablefill.toml.')
+    parser.add_argument('-f', '--force',
+                        action='store_true',
+                        help='Overwrite an existing stablefill.toml.')
+    args = parser.parse_args(argv)
+
+    root = path.abspath(args.directory)
+    if not path.isdir(root):
+        makedirs(root)
+
+    tables_dir = path.join(root, args.tables_dir)
+    if not path.isdir(tables_dir):
+        makedirs(tables_dir)
+        tables_status = 'created'
+    else:
+        tables_status = 'already exists'
+
+    config_path = path.join(root, CONFIG_BASENAME)
+    config_existed = path.isfile(config_path)
+    if config_existed and not args.force:
+        config_status = 'already exists'
+    else:
+        with open(config_path, 'w') as handle:
+            handle.write('template = "%s"%s' % (_toml_path(args.template), linesep))
+            handle.write('output = "%s"%s' % (_toml_path(args.output), linesep))
+            handle.write('input_dir = "%s"%s' % (_toml_path(args.tables_dir), linesep))
+            handle.write('no_header = true%s' % linesep)
+        config_status = 'updated' if config_existed else 'created'
+
+    print('StableFill project initialized in %s' % root)
+    print('  %s: %s' % (args.tables_dir, tables_status))
+    print('  %s: %s' % (CONFIG_BASENAME, config_status))
+    return 0
+
+
+def _toml_path(value):
+    return value.replace('\\', '/').replace('"', '\\"')
+
+
 class StableFillCLIParser:
     """
     WARNING: Internal class to parse arguments to pass to StableFill.
     """
-    def __init__(self):
+    def __init__(self, command='fill', argv=None):
+        self.command = command
+        self.argv = sys.argv[1:] if argv is None else argv
         self.compiler = {'tex': "xelatex ",
                          'lyx': "lyx -e pdf2 ",
                          'md': "pandoc -i "}
@@ -451,8 +589,8 @@ class StableFillCLIParser:
         """
         Parse command-line arguments using argparse; return parser
         """
-        parser_desc    = __purpose__
-        parser_prog    = __program__
+        parser_desc    = __purpose__ if self.command == 'fill' else "Inspect what StableFill would fill without writing output."
+        parser_prog    = __program__ if self.command == 'fill' else __program__ + ' ' + self.command
         # parser_use     = __program__ + ' ' + __usage__
         parser_version = __version__
         parser = argparse.ArgumentParser(prog  = parser_prog,
@@ -624,7 +762,7 @@ class StableFillCLIParser:
         Get arguments; if input and output names are missing, guess them
         (only guess with the --force option, otherwise don't run).
         """
-        args = self.parser.parse_args()
+        args = self.parser.parse_args(self.argv)
         config_path = args.config[0] if args.config else CONFIG_BASENAME
         if args.config and not path.isfile(config_path):
             raise IOError("Please check the config file exists:" + config_path)
@@ -648,7 +786,8 @@ class StableFillCLIParser:
         missing_args  = []
         missing_args += ['TEMPLATE'] if args.template is None else []
         missing_args += ['INPUT'] if not args.input and args.input_dir is None and not args.remove_annotations else []
-        missing_args += ['OUTPUT'] if args.output is None else []
+        if self.command == 'fill':
+            missing_args += ['OUTPUT'] if args.output is None else []
         if missing_args != []:
             if not args.force or 'TEMPLATE' in missing_args:
                 isare = ' is ' if len(missing_args) == 1 else ' are '
@@ -671,7 +810,7 @@ class StableFillCLIParser:
         self.args = args
 
     def cli_option_present(self, *options):
-        return any(option in sys.argv[1:] for option in options)
+        return any(option in self.argv for option in options)
 
     def apply_config_defaults(self, args, config):
         if not config:
@@ -730,7 +869,7 @@ class StableFillCLIParser:
         self.template  = path.abspath(self.args.template)
         self.input     = '' if self.args.input is None else ' '.join([path.abspath(f) for f in self.args.input])
         self.input_dir = None if self.args.input_dir is None else path.abspath(self.args.input_dir[0])
-        self.output    = path.abspath(self.args.output[0])
+        self.output    = None if self.args.output is None else path.abspath(self.args.output[0])
         self.silent    = self.args.silent
         self.verbose   = self.args.verbose and not self.args.silent
         self.stars     = self.args.stars
@@ -901,14 +1040,16 @@ class StableFillEngine:
             stacklevel=3,
         )
 
-    def get_parsed_arguments(self, kwargs):
+    def get_parsed_arguments(self, kwargs, require_output=True):
         """
         Gets template, input, and output from kwargs with checks for
             - All arguments are there as strings
             - All files exist
             - Output directory exists and is writable
         """
-        args = ['template', 'output']
+        args = ['template']
+        if require_output:
+            args += ['output']
         has_input = 'input' in kwargs and kwargs.get('input')
         has_input_dir = 'input_dir' in kwargs and kwargs.get('input_dir')
         if has_input and has_input_dir:
@@ -917,7 +1058,7 @@ class StableFillEngine:
             args += ['input']
 
         # XX
-        missing_args = list(filter(lambda arg: arg not in kwargs.keys(), args))
+        missing_args = list(filter(lambda arg: arg not in kwargs.keys() or not kwargs.get(arg), args))
         if missing_args != []:
             template_for_default = kwargs.get('template')
             default_input_dir = None
@@ -944,7 +1085,7 @@ class StableFillEngine:
             raise TypeError(mismatched_msg)
 
         self.template = path.abspath(kwargs['template'])
-        self.output   = path.abspath(kwargs['output'])
+        self.output   = path.abspath(kwargs['output']) if kwargs.get('output') else None
         self.input = []
         if not self.remove_annotations:
             if kwargs.get('input_dir'):
@@ -959,18 +1100,19 @@ class StableFillEngine:
             missing_files_msg += linesep + linesep.join(missing_files)
             raise IOError(missing_files_msg)
 
-        outdir = path.split(self.output)[0]
-        missing_path = not path.isdir(outdir)
-        if missing_path:
-            missing_outdir_msg  = "Please check the directory exists:"
-            missing_outdir_msg += outdir
-            raise IOError(missing_outdir_msg)
+        if self.output is not None:
+            outdir = path.split(self.output)[0]
+            missing_path = not path.isdir(outdir)
+            if missing_path:
+                missing_outdir_msg  = "Please check the directory exists:"
+                missing_outdir_msg += outdir
+                raise IOError(missing_outdir_msg)
 
-        cannot_write = not access(outdir, W_OK)
-        if cannot_write:
-            cannot_write_msg  = "Please check you have write access to: "
-            cannot_write_msg += outdir
-            raise IOError(cannot_write_msg)
+            cannot_write = not access(outdir, W_OK)
+            if cannot_write:
+                cannot_write_msg  = "Please check you have write access to: "
+                cannot_write_msg += outdir
+                raise IOError(cannot_write_msg)
 
     def discover_input_files(self, input_dir):
         """
@@ -1063,6 +1205,8 @@ class StableFillEngine:
         parsed_inputs = parse_input_files(self.input, self.nafilters)
         ctables       = parsed_inputs.tables
         scalar_values = parsed_inputs.values
+        self.input_sources = parsed_inputs.sources
+        self.scalar_values = scalar_values
 
         if not self.ignore_xml:
             xml_input  = self.template if self.xml_tables is None else self.xml_tables
@@ -1079,6 +1223,153 @@ class StableFillEngine:
         self.inline_values = dict((k, v[0]) for (k, v) in self.tables.items()
                                   if len(v) > 0)
         self.inline_values.update(scalar_values)
+
+    def get_inspection_report(self):
+        """Describe what StableFill would fill without mutating files."""
+        if version_info >= (3, 0):
+            read_template = open(self.template, 'r').readlines()
+        else:
+            read_template = open(self.template, 'rU').readlines()
+
+        table_report = self.inspect_template_tables(read_template)
+        inline_report = self.inspect_inline_placeholders(read_template)
+        used_table_keys = set(row['label'] for row in table_report
+                              if row['label'] and row['placeholder_count'] > 0
+                              and row['label'] in self.tables)
+        used_inline_keys = set(row['key'] for row in inline_report
+                               if row['key'] in self.inline_values)
+        scalar_values = getattr(self, 'scalar_values', {})
+        unused_tables = sorted(set(self.tables.keys()) - used_table_keys - used_inline_keys)
+        unused_values = sorted(set(scalar_values.keys()) - used_inline_keys)
+
+        lines = []
+        lines += ['StableFill inspect', '']
+        lines += ['Template:', '  %s' % self.template]
+        if self.output is not None:
+            lines += ['Output:', '  %s' % self.output]
+        lines += ['', 'Input files:']
+        lines += ['  %s' % filename for filename in self.input]
+        lines += ['', 'Input tables:']
+        if self.tables:
+            for key in sorted(self.tables.keys()):
+                source = getattr(self, 'input_sources', {}).get(key, '(derived or unknown source)')
+                lines += ['  tab:%s: %d values from %s' % (key, len(self.tables[key]), source)]
+        else:
+            lines += ['  (none)']
+
+        lines += ['', 'Named values:']
+        if scalar_values:
+            for key in sorted(scalar_values.keys()):
+                source = getattr(self, 'input_sources', {}).get(key, '(unknown source)')
+                lines += ['  val:%s: %s from %s' % (key, scalar_values[key], source)]
+        else:
+            lines += ['  (none)']
+
+        lines += ['', 'Template tables:']
+        if table_report:
+            for row in table_report:
+                lines += ['  line %d: %s' % (row['start_line'], row['summary'])]
+        else:
+            lines += ['  (no table regions detected)']
+
+        lines += ['', 'Inline placeholders:']
+        if inline_report:
+            for row in inline_report:
+                lines += ['  line %d: {{%s}} -> %s' % (row['line'], row['raw_key'], row['status'])]
+        else:
+            lines += ['  (none)']
+
+        lines += ['', 'Unused input:']
+        lines += ['  tables: %s' % (', '.join('tab:%s' % key for key in unused_tables) or '(none)')]
+        lines += ['  values: %s' % (', '.join('val:%s' % key for key in unused_values) or '(none)')]
+        return linesep.join(lines)
+
+    def inspect_template_tables(self, lines):
+        reports = []
+        table_start = -1
+        current = None
+        for index, line in enumerate(lines):
+            if table_start == -1 and self.scanner.is_table_start(line):
+                result = self.scanner.search_label(lines, index, self.tables.keys())
+                table_start = index
+                current = {
+                    'start_line': index + 1,
+                    'label': result.tag,
+                    'placeholder_count': 0,
+                    'end_line': result.end_line,
+                }
+
+            countable = current is not None
+            if countable and (not self.scanner.is_comment(line) or self.fillc):
+                current['placeholder_count'] += self.count_table_placeholders(line)
+
+            if current is not None and self.scanner.is_table_end(line):
+                current['end_line'] = index + 1
+                current['summary'] = self.summarize_table_inspection(current)
+                reports += [current]
+                table_start = -1
+                current = None
+
+        if current is not None:
+            current['summary'] = self.summarize_table_inspection(current)
+            reports += [current]
+        return reports
+
+    def count_table_placeholders(self, line):
+        count = 0
+        for pattern in self.placeholder_formatter.patterns.active_patterns():
+            count += len(list(re.finditer(pattern, line)))
+        return count
+
+    def summarize_table_inspection(self, row):
+        label = row['label']
+        placeholders = row['placeholder_count']
+        if not label:
+            return 'unlabeled table, skipped'
+        if placeholders == 0:
+            return 'tab:%s: ignored, no StableFill table placeholders' % label
+        if label not in self.tables:
+            return 'tab:%s: MISSING INPUT for %d placeholders' % (label, placeholders)
+
+        available = len(self.tables[label])
+        if available < placeholders:
+            return 'tab:%s: TOO FEW VALUES, %d available for %d placeholders' % (
+                label,
+                available,
+                placeholders,
+            )
+        if available > placeholders:
+            return 'tab:%s: OK, %d placeholders; %d extra input values' % (
+                label,
+                placeholders,
+                available - placeholders,
+            )
+        return 'tab:%s: OK, %d placeholders and %d input values' % (
+            label,
+            placeholders,
+            available,
+        )
+
+    def inspect_inline_placeholders(self, lines):
+        report = []
+        for line_number, line in enumerate(lines, start=1):
+            for match in INLINE_RE.finditer(line):
+                raw_key = match.group('name').strip()
+                key = normalize_key(raw_key)
+                if key in self.inline_values:
+                    status = 'OK (%s)' % self.format_inline_value(
+                        self.inline_values[key],
+                        match.group('format').strip() if match.group('format') else None,
+                    )
+                else:
+                    status = 'MISSING INPUT'
+                report += [{
+                    'line': line_number,
+                    'raw_key': raw_key,
+                    'key': key,
+                    'status': status,
+                }]
+        return report
 
     def parse_xml_file(self, ctables, xml_input, prefix = ''):
         r"""Parse custom tabs in comments/XML files

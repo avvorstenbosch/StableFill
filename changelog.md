@@ -7,6 +7,8 @@
 - Add `--input-dir` / `input_dir` support for reading all `.txt` result files from a directory in sorted order.
 - Automatically use a `tables` directory next to the template when no explicit input file or input directory is provided.
 - Add `stablefill.toml` support for running the CLI with saved template, input, output, and formatting settings.
+- Add `stablefill inspect` as a dry-run command that reports detected inputs, template placeholders, ignored already-filled tables, missing values, and unused blocks.
+- Add `stablefill init` to create a minimal `stablefill.toml` and `tables/` directory for new projects.
 
 ### Deprecations
 

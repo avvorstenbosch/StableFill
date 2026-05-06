@@ -20,6 +20,7 @@ nav:
         - Annotation Mode:  usage/10-annotations.md
         - Configuration Files: usage/11-configuration.md
         - Legacy XML/Python: usage/12-legacy-xml.md
+        - Inspect and Init: usage/13-inspect-init.md
 
 theme:
     name: 'material'
